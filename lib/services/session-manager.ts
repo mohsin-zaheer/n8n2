@@ -102,7 +102,7 @@ export class SessionManager {
             session_id: sessionId,
             user_prompt: initialPrompt,
             state: initialState,
-            user_id: userId, // Add user_id for workflow ownership
+            user_id: userId || null, // Use null for anonymous users instead of "anonymous" string
           },
           {
             onConflict: "session_id",

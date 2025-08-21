@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     // Start discovery phase asynchronously
     // Don't await - let it run in background
     orchestrator
-      .runDiscoveryPhase(sessionId, prompt, "anonymous")
+      .runDiscoveryPhase(sessionId, prompt, null)
       .then(async (result) => {
         logger.info(`Discovery phase result for ${sessionId}:`, {
           success: result.success,
