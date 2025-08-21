@@ -1,0 +1,42 @@
+{
+  "testName": "User Test",
+  "prompt": "Collect merged PR titles from GitHub, summarize, and post to Slack and Notion each Friday.",
+  "generatedAt": "2025-08-17T14:43:24.025Z",
+  "workflowFile": "user-test-2025-08-17T14-43-24-023Z.json",
+  "workflow": {
+    "name": "Weekly GitHub PR Summary to Slack and Notion",
+    "nodeCount": 11,
+    "connectionCount": 4
+  },
+  "phases": {
+    "discovery": {
+      "success": true,
+      "nodeCount": 6,
+      "duration": 0
+    },
+    "configuration": {
+      "success": true,
+      "configuredCount": 6,
+      "duration": 0
+    },
+    "building": {
+      "success": true,
+      "duration": 0
+    },
+    "validation": {
+      "success": true,
+      "attempts": 3,
+      "issuesFixed": 0,
+      "duration": 0
+    },
+    "documentation": {
+      "success": true,
+      "stickyNotesAdded": 5,
+      "duration": 0
+    }
+  },
+  "overall": {
+    "success": true,
+    "totalDuration": 0
+  }
+}
