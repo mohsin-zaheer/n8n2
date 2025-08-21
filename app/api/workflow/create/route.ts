@@ -4,30 +4,16 @@ import { WorkflowOrchestrator } from "@/lib/workflow-orchestrator";
 import { nanoid } from "nanoid";
 import { logger } from "@/lib/utils/logger";
 import { perfTracker } from "@/lib/utils/performance-tracker";
-import { createServerClientInstance } from "@/lib/supabase";
 
 /**
  * POST /api/workflow/create
  * Creates a new workflow session and starts the discovery phase
- * Requires authentication
+ * No authentication required
  */
 export async function POST(request: Request) {
   const apiStartTime = Date.now();
   
   try {
-    // Check authentication
-    const supabase = await perfTracker.measure('API_Auth_Check', async () => {
-      return await createServerClientInstance();
-    });
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
     if (isMockEnabled()) {
       return NextResponse.json(mockCreateResponse());
     }
@@ -54,7 +40,7 @@ export async function POST(request: Request) {
     // Start discovery phase asynchronously
     // Don't await - let it run in background
     orchestrator
-      .runDiscoveryPhase(sessionId, prompt, user.id)
+      .runDiscoveryPhase(sessionId, prompt, "anonymous")
       .then(async (result) => {
         logger.info(`Discovery phase result for ${sessionId}:`, {
           success: result.success,
