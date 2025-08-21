@@ -4,8 +4,6 @@ import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase-client";
-import { nanoid } from "nanoid";
 
 const outcomes: { label: string; prompt: string }[] = [
   {
@@ -64,38 +62,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hoverPrompt, setHoverPrompt] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const disabled = prompt.trim().length === 0 || loading;
   const inputWrapperRef = useRef<HTMLDivElement | null>(null);
-  const supabase = createClient();
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkUser = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUser(user);
-      } catch (error) {
-        console.error("Error checking auth:", error);
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-
-    checkUser();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
 
   const onUseExample = (e: string) => setPrompt(e);
   const pulseInputRing = () => {
@@ -126,48 +94,7 @@ export default function Home() {
       setLoading(true);
       setError("");
 
-      // Check if user is authenticated
-      if (!user) {
-        // Generate a workflow session ID upfront
-        const timestamp = Date.now();
-        const random = nanoid(10);
-        const workflowSessionId = `wf_${timestamp}_${random}`;
-
-        // Generate a session token for anonymous user
-        const sessionToken = `anon_${nanoid(16)}`;
-
-        // Store the prompt data in the sessions table
-        const tempPromptData = {
-          prompt,
-          workflowSessionId, // Store the workflow session ID
-          returnUrl: `/workflow/${workflowSessionId}`,
-          timestamp: new Date().toISOString(),
-        };
-
-        // Store in Supabase sessions table
-        const { error: sessionError } = await supabase.from("sessions").insert({
-          id: sessionToken,
-          session_token: sessionToken,
-          temp_prompt_data: tempPromptData,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-          created_at: new Date().toISOString(),
-          last_activity: new Date().toISOString(),
-        });
-
-        if (sessionError) {
-          console.error("Failed to store session:", sessionError);
-          throw new Error("Failed to save your workflow prompt");
-        }
-
-        // Store session token in localStorage for retrieval after auth
-        localStorage.setItem("pending_workflow_session", sessionToken);
-
-        // Redirect to login page with the workflow session ID
-        router.push(`/auth/login?returnUrl=/workflow/${workflowSessionId}`);
-        return;
-      }
-
-      // User is authenticated, create workflow directly
+      // Create workflow directly without authentication
       const res = await fetch("/api/workflow/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -220,14 +147,10 @@ export default function Home() {
                   <Button
                     className="btn btn-primary"
                     onClick={onSubmit}
-                    disabled={disabled || checkingAuth}
+                    disabled={disabled}
                   >
                     <i className="fa-solid fa-bolt icon-sm" />{" "}
-                    {loading
-                      ? checkingAuth
-                        ? "Checking..."
-                        : "Starting..."
-                      : "Start"}
+                    {loading ? "Starting..." : "Start"}
                   </Button>
                 </div>
                 {error && (
