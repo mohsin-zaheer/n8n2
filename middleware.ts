@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateSession } from '@/lib/utils/supabase/middleware';
 
 interface LogContext {
   requestId: string;
@@ -22,17 +21,9 @@ function extractSessionId(pathname: string): string | undefined {
  */
 export async function middleware(request: NextRequest) {
   try {
-    // Handle authentication for all routes
-    const authResponse = await updateSession(request);
-    
-    // If auth middleware returned a redirect, use it
-    if (authResponse.status === 307 || authResponse.status === 302) {
-      return authResponse;
-    }
-    
     // Only add logging headers for API routes
     if (!request.nextUrl.pathname.startsWith('/api/')) {
-      return authResponse;
+      return NextResponse.next({ request });
     }
 
     const requestId = request.headers.get('x-request-id') || `req-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -54,7 +45,6 @@ export async function middleware(request: NextRequest) {
     // Clone the response to avoid modifying headers after they're sent
     const response = NextResponse.next({
       request,
-      headers: authResponse.headers,
     });
 
     // Add request ID to response headers
