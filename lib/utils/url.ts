@@ -8,7 +8,7 @@ export const getURL = (): string => {
   let url = 
     process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this in production
     process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel
-    'http://localhost:3000/' // Local development fallback
+    (process.env.NODE_ENV === 'development' ? 'http://localhost:3000/' : 'https://n8n.geniusai.biz/') // Environment-specific fallback
   
   // Make sure to include `https://` when not localhost
   url = url.startsWith('http') ? url : `https://${url}`
