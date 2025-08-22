@@ -2,7 +2,6 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
-<<<<<<< HEAD
   // Use env vars directly in middleware to avoid edge runtime issues
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -71,10 +70,3 @@ export async function updateSession(request: NextRequest) {
     });
   }
 }
-=======
-  // Authentication disabled - just pass through all requests
-  return NextResponse.next({
-    request,
-  });
-}
->>>>>>> origin/main
