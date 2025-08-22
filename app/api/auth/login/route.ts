@@ -6,6 +6,13 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const redirectTo = searchParams.get('redirectTo') || '/';
   
+  console.log('OAuth login initiated:', {
+    origin,
+    redirectTo,
+    baseURL: getURL(),
+    fullCallbackURL: `${getURL()}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+  });
+  
   const supabase = await createServerClientInstance();
   
   // Use getURL() for proper environment-aware redirect handling
@@ -26,9 +33,11 @@ export async function GET(request: Request) {
   }
 
   if (data.url) {
+    console.log('Redirecting to OAuth provider:', data.url.substring(0, 100) + '...');
     return NextResponse.redirect(data.url);
   }
 
   // Fallback redirect
+  console.error('No OAuth URL returned from Supabase');
   return NextResponse.redirect(`${origin}/?auth=error`);
 }

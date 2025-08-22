@@ -12,11 +12,13 @@ export async function GET(request: Request) {
   // Log all parameters for debugging
   console.log('Auth callback received:', {
     code: code ? `${code.substring(0, 10)}...` : null,
+    codeLength: code?.length || 0,
     redirectTo,
     error,
     errorDescription,
     origin,
-    fullUrl: request.url
+    fullUrl: request.url,
+    allParams: Object.fromEntries(searchParams.entries())
   });
 
   // Handle OAuth errors from the provider
@@ -29,6 +31,7 @@ export async function GET(request: Request) {
     const supabase = await createServerClientInstance();
     
     try {
+      console.log('Attempting to exchange code for session...');
       const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (!authError && authData?.user) {
