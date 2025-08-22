@@ -3,15 +3,19 @@ import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const redirectTo = searchParams.get('redirectTo') || '/';
+  
+  // Use getURL() for consistent origin handling
+  const baseURL = getURL();
+  const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
   
   // Log OAuth initiation (temporarily enabled for production debugging)
   console.log('OAuth login initiated:', {
     origin,
     redirectTo,
-    baseURL: getURL(),
-    fullCallbackURL: `${getURL()}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+    baseURL,
+    fullCallbackURL: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
   });
   
   const supabase = await createServerClientInstance();
@@ -20,7 +24,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${getURL()}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+      redirectTo: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',

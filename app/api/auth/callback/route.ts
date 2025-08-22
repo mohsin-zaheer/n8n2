@@ -3,11 +3,15 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const redirectTo = searchParams.get('redirectTo') || '/';
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
+
+  // Use getURL() for consistent origin handling
+  const baseURL = getURL();
+  const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
 
   // Log all parameters for debugging (temporarily enabled for production debugging)
   console.log('Auth callback received:', {
