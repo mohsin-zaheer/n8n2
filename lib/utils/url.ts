@@ -5,10 +5,15 @@
  * @returns The base URL with protocol and trailing slash
  */
 export const getURL = (): string => {
+  // In production, always use the production domain
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://n8n.geniusai.biz/';
+  }
+  
   let url = 
     process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this in production
     process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel
-    (process.env.NODE_ENV === 'development' ? 'http://localhost:3000/' : 'https://n8n.geniusai.biz/') // Environment-specific fallback
+    'http://localhost:3000/' // Development fallback
   
   // Make sure to include `https://` when not localhost
   url = url.startsWith('http') ? url : `https://${url}`
