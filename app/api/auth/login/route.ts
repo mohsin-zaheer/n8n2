@@ -6,15 +6,13 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const redirectTo = searchParams.get('redirectTo') || '/';
   
-  // Log OAuth initiation in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('OAuth login initiated:', {
-      origin,
-      redirectTo,
-      baseURL: getURL(),
-      fullCallbackURL: `${getURL()}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
-    });
-  }
+  // Log OAuth initiation (temporarily enabled for production debugging)
+  console.log('OAuth login initiated:', {
+    origin,
+    redirectTo,
+    baseURL: getURL(),
+    fullCallbackURL: `${getURL()}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+  });
   
   const supabase = await createServerClientInstance();
   

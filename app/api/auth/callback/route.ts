@@ -9,19 +9,17 @@ export async function GET(request: Request) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
-  // Log all parameters for debugging in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Auth callback received:', {
-      code: code ? `${code.substring(0, 10)}...` : null,
-      codeLength: code?.length || 0,
-      redirectTo,
-      error,
-      errorDescription,
-      origin,
-      fullUrl: request.url,
-      allParams: Object.fromEntries(searchParams.entries())
-    });
-  }
+  // Log all parameters for debugging (temporarily enabled for production debugging)
+  console.log('Auth callback received:', {
+    code: code ? `${code.substring(0, 10)}...` : null,
+    codeLength: code?.length || 0,
+    redirectTo,
+    error,
+    errorDescription,
+    origin,
+    fullUrl: request.url,
+    allParams: Object.fromEntries(searchParams.entries())
+  });
 
   // Handle OAuth errors from the provider
   if (error) {
@@ -33,15 +31,11 @@ export async function GET(request: Request) {
     const supabase = await createServerClientInstance();
     
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Attempting to exchange code for session...');
-      }
+      console.log('Attempting to exchange code for session...');
       const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (!authError && authData?.user) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Auth successful for user:', authData.user.id);
-        }
+        console.log('Auth successful for user:', authData.user.id);
         
         // Check if this is a user returning from login with a pending workflow
         // The redirectTo will be like /workflow/wf_123456_abc
