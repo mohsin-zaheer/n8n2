@@ -35,21 +35,22 @@ export async function GET(request: Request) {
   }
 
   if (code) {
-    // Check if we've already processed this code recently
-    const cookieStore = await cookies();
-    const processedCode = cookieStore.get('processed_auth_code')?.value;
-    
-    if (processedCode === code) {
-      console.log('Auth code already processed, redirecting to success');
-      return NextResponse.redirect(`${origin}${redirectTo}`);
-    }
-    
-    const supabase = await createServerClientInstance();
-    
     try {
+      // Check if we've already processed this code recently
+      const cookieStore = await cookies();
+      const processedCode = cookieStore.get('processed_auth_code')?.value;
+      
+      if (processedCode === code) {
+        console.log('Auth code already processed, redirecting to success');
+        return NextResponse.redirect(`${origin}${redirectTo}`);
+      }
+      
+      const supabase = await createServerClientInstance();
+      
       if (process.env.NODE_ENV === 'development') {
         console.log('Attempting to exchange code for session...');
       }
+      
       const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (!authError && authData?.user) {
@@ -57,30 +58,35 @@ export async function GET(request: Request) {
           console.log('Auth successful for user:', authData.user.id);
         }
         
-        // Mark this code as processed
-        cookieStore.set('processed_auth_code', code, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 300, // 5 minutes expiry
-          path: '/'
-        });
+        // Create response first
+        const response = NextResponse.redirect(`${origin}${redirectTo}`);
         
-        // Check if this is a user returning from login with a pending workflow
-        // The redirectTo will be like /workflow/wf_123456_abc
-        if (redirectTo.startsWith('/workflow/')) {
-          // Store a flag in cookies to indicate user just authenticated
-          cookieStore.set('just_authenticated', 'true', {
+        // Then set cookies on the response
+        try {
+          response.cookies.set('processed_auth_code', code, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 60, // 1 minute expiry
+            maxAge: 300, // 5 minutes expiry
             path: '/'
           });
+          
+          // Check if this is a user returning from login with a pending workflow
+          if (redirectTo.startsWith('/workflow/')) {
+            response.cookies.set('just_authenticated', 'true', {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60, // 1 minute expiry
+              path: '/'
+            });
+          }
+        } catch (cookieError) {
+          console.warn('Failed to set cookies:', cookieError);
+          // Continue anyway - auth was successful
         }
         
-        // Redirect to the intended destination (will be /workflow/[sessionId])
-        return NextResponse.redirect(`${origin}${redirectTo}`);
+        return response;
       }
       
       console.error('Auth callback error:', authError);
