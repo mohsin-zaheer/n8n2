@@ -14,17 +14,19 @@ export async function GET(request: Request) {
   const baseURL = getURL();
   const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
 
-  // Log all parameters for debugging (temporarily enabled for production debugging)
-  console.log('Auth callback received:', {
-    code: code ? `${code.substring(0, 10)}...` : null,
-    codeLength: code?.length || 0,
-    redirectTo,
-    error,
-    errorDescription,
-    origin,
-    fullUrl: request.url,
-    allParams: Object.fromEntries(searchParams.entries())
-  });
+  // Log all parameters for debugging in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Auth callback received:', {
+      code: code ? `${code.substring(0, 10)}...` : null,
+      codeLength: code?.length || 0,
+      redirectTo,
+      error,
+      errorDescription,
+      origin,
+      fullUrl: request.url,
+      allParams: Object.fromEntries(searchParams.entries())
+    });
+  }
 
   // Handle OAuth errors from the provider
   if (error) {
@@ -33,20 +35,41 @@ export async function GET(request: Request) {
   }
 
   if (code) {
+    // Check if we've already processed this code recently
+    const cookieStore = await cookies();
+    const processedCode = cookieStore.get('processed_auth_code')?.value;
+    
+    if (processedCode === code) {
+      console.log('Auth code already processed, redirecting to success');
+      return NextResponse.redirect(`${origin}${redirectTo}`);
+    }
+    
     const supabase = await createServerClientInstance();
     
     try {
-      console.log('Attempting to exchange code for session...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Attempting to exchange code for session...');
+      }
       const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (!authError && authData?.user) {
-        console.log('Auth successful for user:', authData.user.id);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Auth successful for user:', authData.user.id);
+        }
+        
+        // Mark this code as processed
+        cookieStore.set('processed_auth_code', code, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 300, // 5 minutes expiry
+          path: '/'
+        });
         
         // Check if this is a user returning from login with a pending workflow
         // The redirectTo will be like /workflow/wf_123456_abc
         if (redirectTo.startsWith('/workflow/')) {
           // Store a flag in cookies to indicate user just authenticated
-          const cookieStore = await cookies();
           cookieStore.set('just_authenticated', 'true', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',

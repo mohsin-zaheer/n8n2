@@ -10,13 +10,15 @@ export async function GET(request: Request) {
   const baseURL = getURL();
   const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
   
-  // Log OAuth initiation (temporarily enabled for production debugging)
-  console.log('OAuth login initiated:', {
-    origin,
-    redirectTo,
-    baseURL,
-    fullCallbackURL: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
-  });
+  // Log OAuth initiation in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('OAuth login initiated:', {
+      origin,
+      redirectTo,
+      baseURL,
+      fullCallbackURL: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+    });
+  }
   
   const supabase = await createServerClientInstance();
   
