@@ -4,8 +4,11 @@ import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
 import { createClient } from "@/lib/supabase-client";
 import { nanoid } from "nanoid";
+=======
+>>>>>>> origin/main
 
 const outcomes: { label: string; prompt: string }[] = [
   {
@@ -64,6 +67,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hoverPrompt, setHoverPrompt] = useState<string | null>(null);
+<<<<<<< HEAD
   const [user, setUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const disabled = prompt.trim().length === 0 || loading;
@@ -96,6 +100,10 @@ export default function Home() {
 
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
+=======
+  const disabled = prompt.trim().length === 0 || loading;
+  const inputWrapperRef = useRef<HTMLDivElement | null>(null);
+>>>>>>> origin/main
 
   const onUseExample = (e: string) => setPrompt(e);
   const pulseInputRing = () => {
@@ -126,6 +134,7 @@ export default function Home() {
       setLoading(true);
       setError("");
 
+<<<<<<< HEAD
       // Check if user is authenticated
       if (!user) {
         // Generate a workflow session ID upfront
@@ -168,6 +177,9 @@ export default function Home() {
       }
 
       // User is authenticated, create workflow directly
+=======
+      // Create workflow directly without authentication
+>>>>>>> origin/main
       const res = await fetch("/api/workflow/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -220,6 +232,7 @@ export default function Home() {
                   <Button
                     className="btn btn-primary"
                     onClick={onSubmit}
+<<<<<<< HEAD
                     disabled={disabled || checkingAuth}
                   >
                     <i className="fa-solid fa-bolt icon-sm" />{" "}
@@ -228,6 +241,12 @@ export default function Home() {
                         ? "Checking..."
                         : "Starting..."
                       : "Start"}
+=======
+                    disabled={disabled}
+                  >
+                    <i className="fa-solid fa-bolt icon-sm" />{" "}
+                    {loading ? "Starting..." : "Start"}
+>>>>>>> origin/main
                   </Button>
                 </div>
                 {error && (

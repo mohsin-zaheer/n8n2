@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+<<<<<<< HEAD
 import { updateSession } from '@/lib/utils/supabase/middleware';
+=======
+>>>>>>> origin/main
 
 interface LogContext {
   requestId: string;
@@ -22,6 +25,7 @@ function extractSessionId(pathname: string): string | undefined {
  */
 export async function middleware(request: NextRequest) {
   try {
+<<<<<<< HEAD
     // Handle authentication for all routes
     const authResponse = await updateSession(request);
     
@@ -33,6 +37,11 @@ export async function middleware(request: NextRequest) {
     // Only add logging headers for API routes
     if (!request.nextUrl.pathname.startsWith('/api/')) {
       return authResponse;
+=======
+    // Only add logging headers for API routes
+    if (!request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.next({ request });
+>>>>>>> origin/main
     }
 
     const requestId = request.headers.get('x-request-id') || `req-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -54,7 +63,10 @@ export async function middleware(request: NextRequest) {
     // Clone the response to avoid modifying headers after they're sent
     const response = NextResponse.next({
       request,
+<<<<<<< HEAD
       headers: authResponse.headers,
+=======
+>>>>>>> origin/main
     });
 
     // Add request ID to response headers
@@ -82,4 +94,8 @@ export const config = {
     // Match all routes except static files
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> origin/main
