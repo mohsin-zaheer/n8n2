@@ -1,0 +1,296 @@
+{
+  "name": "Weekly GitHub PR Summary to Slack and Notion",
+  "nodes": [
+    {
+      "id": "scheduleTrigger_1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        470,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 5"
+            }
+          ]
+        }
+      },
+      "name": "Friday Trigger",
+      "typeVersion": 1.2,
+      "onError": "stopWorkflow"
+    },
+    {
+      "id": "httpRequest_1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        870,
+        300
+      ],
+      "parameters": {
+        "url": "https://api.github.com/repos/OWNER/REPO/pulls?state=closed&sort=updated&direction=desc&per_page=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get GitHub PRs",
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
+      "maxTries": 3
+    },
+    {
+      "id": "code_1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1270,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Transform GitHub PR data into structured summaries\nconst results = [];\nconst oneWeekAgo = new Date();\noneWeekAgo.setDate(oneWeekAgo.getDate() - 7);\n\nfor (const item of $input.all()) {\n  const prs = item.json;\n  const mergedPRs = prs.filter(pr => {\n    if (!pr.merged_at) return false;\n    const mergedDate = new Date(pr.merged_at);\n    return mergedDate >= oneWeekAgo;\n  });\n  \n  const prTitles = mergedPRs.map(pr => ({\n    title: pr.title,\n    author: pr.user.login,\n    merged_at: pr.merged_at,\n    html_url: pr.html_url\n  }));\n  \n  results.push({\n    json: {\n      merged_prs: prTitles,\n      count: prTitles.length,\n      week_start: oneWeekAgo.toISOString().split('T')[0],\n      week_end: new Date().toISOString().split('T')[0]\n    }\n  });\n}\n\nreturn results;"
+      },
+      "name": "Transform PR Data",
+      "typeVersion": 2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "openAi_1",
+      "type": "n8n-nodes-base.openAi",
+      "position": [
+        1470,
+        300
+      ],
+      "parameters": {
+        "modelId": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a technical writer creating weekly PR summaries. Create a concise, professional summary of the merged pull requests."
+            },
+            {
+              "role": "user",
+              "content": "{{ `Create a weekly summary for these ${$json.count} merged PRs:\n\n${$json.merged_prs.map(pr => `- ${pr.title} (by ${pr.author})`).join('\\n')}\n\nMake it engaging and highlight key themes or improvements.` }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "name": "Summarize PRs",
+      "typeVersion": 1.1,
+      "onError": "continueRegularOutput",
+      "maxTries": 3
+    },
+    {
+      "id": "slack_1",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        1870,
+        250
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": "#development",
+        "text": "{{ `📊 *Weekly PR Summary - ${new Date().toLocaleDateString()}*\n\n${$('Summarize PRs').item.json.message.content}\n\n*Total PRs Merged:* ${$('Transform PR Data').item.json.count}\n*Period:* ${$('Transform PR Data').item.json.week_start} to ${$('Transform PR Data').item.json.week_end}` }}",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "name": "Post to Slack",
+      "typeVersion": 2.3,
+      "onError": "continueRegularOutput",
+      "maxTries": 2
+    },
+    {
+      "id": "notion_1",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        1870,
+        400
+      ],
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "your-database-id",
+        "title": "{{ 'Weekly PR Summary - ' + new Date().toLocaleDateString() }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Summary",
+              "textContent": "{{ $('Summarize PRs').item.json.message.content }}"
+            },
+            {
+              "key": "PR Count",
+              "numberValue": "{{ $('Transform PR Data').item.json.count }}"
+            },
+            {
+              "key": "Week Start",
+              "dateValue": "{{ $('Transform PR Data').item.json.week_start }}"
+            },
+            {
+              "key": "Week End",
+              "dateValue": "{{ $('Transform PR Data').item.json.week_end }}"
+            }
+          ]
+        }
+      },
+      "name": "Post to Notion",
+      "typeVersion": 2.2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "sticky_triggers_1755441803511",
+      "name": "Triggers Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        390,
+        10
+      ],
+      "parameters": {
+        "content": "## 📥 Triggers\nInitiates the workflow every Friday at 9 AM to begin the weekly PR summary process.",
+        "height": 530,
+        "width": 310,
+        "color": 5
+      }
+    },
+    {
+      "id": "sticky_inputs_1755441803512",
+      "name": "Inputs Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        790,
+        10
+      ],
+      "parameters": {
+        "content": "## 📊 Inputs\nFetches merged pull requests from GitHub API for the past week using authenticated requests.",
+        "height": 530,
+        "width": 310,
+        "color": 5
+      }
+    },
+    {
+      "id": "sticky_transforms_1755441803512",
+      "name": "Transform Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1230,
+        10
+      ],
+      "parameters": {
+        "content": "## ⚙️ Transform\nFilters PRs to only include those merged in the last 7 days and transforms the data into a structured format for summarization.\n\nUses OpenAI to generate a concise, professional summary of the merged pull requests highlighting key themes and improvements.",
+        "height": 530,
+        "width": 430,
+        "color": 5
+      }
+    },
+    {
+      "id": "sticky_outputs_1755441803512",
+      "name": "Outputs Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1790,
+        10
+      ],
+      "parameters": {
+        "content": "## 🚀 Outputs\nSimultaneously posts the weekly PR summary to both Slack channel and Notion database for team visibility and record keeping.",
+        "height": 530,
+        "width": 310,
+        "color": 6
+      }
+    },
+    {
+      "id": "sticky_promo_1755441803512",
+      "name": "Workflow Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        50,
+        10
+      ],
+      "parameters": {
+        "content": "## 🚀 Grow your AI business\n\nNeed help in implementing this workflow for your business? Join the Ghost Team community.\n\nThis workflow is made with 💚 by Ghost Team.",
+        "height": 530,
+        "width": 280,
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "Friday Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get GitHub PRs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub PRs": {
+      "main": [
+        [
+          {
+            "node": "Transform PR Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform PR Data": {
+      "main": [
+        [
+          {
+            "node": "Summarize PRs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize PRs": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-08-17T14:43:24.024Z",
+  "versionId": null
+}
