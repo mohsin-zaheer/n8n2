@@ -10,18 +10,23 @@ export const getURL = (): string => {
     return 'https://n8n.geniusai.biz/';
   }
   
-  let url = 
-    process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this in production
-    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel
-    'http://localhost:3000/' // Development fallback
+  // Check for explicit site URL first (useful for staging/testing)
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    let url = process.env.NEXT_PUBLIC_SITE_URL;
+    // Make sure to include `https://` when not localhost
+    url = url.startsWith('http') ? url : `https://${url}`;
+    // Make sure to include trailing `/`
+    url = url.endsWith('/') ? url : `${url}/`;
+    return url;
+  }
   
-  // Make sure to include `https://` when not localhost
-  url = url.startsWith('http') ? url : `https://${url}`
+  // Vercel deployment URL
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/`;
+  }
   
-  // Make sure to include trailing `/`
-  url = url.endsWith('/') ? url : `${url}/`
-  
-  return url
+  // Development fallback
+  return 'http://localhost:3000/';
 }
 
 /**
