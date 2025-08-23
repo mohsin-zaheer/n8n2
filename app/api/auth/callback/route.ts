@@ -82,8 +82,35 @@ export async function GET(request: Request) {
         const finalRedirectUrl = `${origin}${safeRedirectTo}`;
         console.log('Redirecting to:', finalRedirectUrl);
         
-        // Use a simple HTTP redirect instead of HTML to avoid double requests
-        const response = NextResponse.redirect(finalRedirectUrl);
+        // Create a JavaScript redirect response to avoid 502 errors
+        const redirectScript = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Authentication Successful</title>
+</head>
+<body>
+  <script>
+    // Immediate redirect without any delays
+    window.location.replace("${finalRedirectUrl}");
+  </script>
+  <noscript>
+    <meta http-equiv="refresh" content="0; url=${finalRedirectUrl}">
+    <p>Authentication successful. <a href="${finalRedirectUrl}">Click here to continue</a>.</p>
+  </noscript>
+</body>
+</html>`;
+        
+        const response = new NextResponse(redirectScript, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         
         // Set cookies via response headers for Edge Runtime compatibility
         if (safeRedirectTo.startsWith('/workflow/')) {
@@ -97,6 +124,7 @@ export async function GET(request: Request) {
           });
         }
         
+        console.log('Returning JavaScript redirect response');
         return response;
       }
       
