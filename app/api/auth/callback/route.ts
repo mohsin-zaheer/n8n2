@@ -88,13 +88,26 @@ export async function GET(request: Request) {
           const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
           const redirectUrl = `${origin}${safeRedirectTo}`;
           
-          console.log('Creating simple redirect to:', redirectUrl);
+          console.log('Creating HTML redirect to:', redirectUrl);
           
-          // Try a different redirect approach
-          return new NextResponse(null, {
-            status: 302,
+          // Try HTML redirect instead of HTTP redirect
+          const htmlRedirect = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta http-equiv="refresh" content="0; url=${redirectUrl}">
+              <script>window.location.href = "${redirectUrl}";</script>
+            </head>
+            <body>
+              <p>Redirecting to <a href="${redirectUrl}">${redirectUrl}</a>...</p>
+            </body>
+            </html>
+          `;
+          
+          return new NextResponse(htmlRedirect, {
+            status: 200,
             headers: {
-              'Location': redirectUrl,
+              'Content-Type': 'text/html',
             },
           });
         }
