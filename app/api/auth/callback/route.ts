@@ -71,7 +71,34 @@ export async function GET(request: Request) {
         
         const finalRedirectUrl = `${origin}${redirectTo}`;
         console.log('Redirecting to:', finalRedirectUrl);
-        return NextResponse.redirect(finalRedirectUrl);
+        
+        // Use HTML redirect instead of NextResponse.redirect to avoid 502 errors
+        const htmlRedirect = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Authentication Successful</title>
+  <meta http-equiv="refresh" content="0; url=${finalRedirectUrl}">
+  <script>
+    setTimeout(function() {
+      window.location.href = "${finalRedirectUrl}";
+    }, 100);
+  </script>
+</head>
+<body>
+  <p>Authentication successful. Redirecting...</p>
+  <p>If you are not redirected automatically, <a href="${finalRedirectUrl}">click here</a>.</p>
+</body>
+</html>`;
+        
+        console.log('Returning HTML redirect response');
+        return new NextResponse(htmlRedirect, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          }
+        });
       }
       
       console.error('Auth callback error:', error);
