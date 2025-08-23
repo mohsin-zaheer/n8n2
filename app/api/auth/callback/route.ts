@@ -5,6 +5,9 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
 
+// Simple in-memory cache to prevent code reuse (Edge Runtime compatible)
+const processedCodes = new Set<string>();
+
 export async function GET(request: Request) {
   console.log('Auth callback route hit at:', new Date().toISOString());
   
@@ -33,6 +36,13 @@ export async function GET(request: Request) {
   }
 
   if (code) {
+    // Check if this code has already been processed
+    if (processedCodes.has(code)) {
+      console.log('Auth code already processed, redirecting to success');
+      const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
+      return NextResponse.redirect(`${origin}${safeRedirectTo}`);
+    }
+
     console.log('Processing auth code...');
     
     try {
@@ -52,6 +62,16 @@ export async function GET(request: Request) {
       if (!error && authData?.user) {
         console.log('Auth successful for user:', authData.user.id);
         
+        // Mark this code as processed
+        processedCodes.add(code);
+        
+        // Clean up old codes (keep only last 100)
+        if (processedCodes.size > 100) {
+          const codesArray = Array.from(processedCodes);
+          processedCodes.clear();
+          codesArray.slice(-50).forEach(c => processedCodes.add(c));
+        }
+        
         // Ensure we don't redirect back to auth routes to prevent loops
         let safeRedirectTo = redirectTo;
         if (redirectTo.startsWith('/api/auth/') || redirectTo.includes('/auth/')) {
@@ -62,34 +82,8 @@ export async function GET(request: Request) {
         const finalRedirectUrl = `${origin}${safeRedirectTo}`;
         console.log('Redirecting to:', finalRedirectUrl);
         
-        // Create response with cookies set in headers (Edge Runtime compatible)
-        const htmlRedirect = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Authentication Successful</title>
-  <meta http-equiv="refresh" content="0; url=${finalRedirectUrl}">
-  <script>
-    setTimeout(function() {
-      window.location.href = "${finalRedirectUrl}";
-    }, 100);
-  </script>
-</head>
-<body>
-  <p>Authentication successful. Redirecting...</p>
-  <p>If you are not redirected automatically, <a href="${finalRedirectUrl}">click here</a>.</p>
-</body>
-</html>`;
-        
-        console.log('Returning HTML redirect response');
-        
-        const response = new NextResponse(htmlRedirect, {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/html',
-            'Cache-Control': 'no-cache, no-store, must-revalidate'
-          }
-        });
+        // Use a simple HTTP redirect instead of HTML to avoid double requests
+        const response = NextResponse.redirect(finalRedirectUrl);
         
         // Set cookies via response headers for Edge Runtime compatibility
         if (safeRedirectTo.startsWith('/workflow/')) {
