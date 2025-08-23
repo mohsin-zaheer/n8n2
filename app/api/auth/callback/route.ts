@@ -3,6 +3,8 @@ import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   // Basic health check - log that we reached the route
   console.log('Auth callback route hit at:', new Date().toISOString());
