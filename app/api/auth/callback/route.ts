@@ -1,9 +1,9 @@
 import { createServerClientInstance } from '@/lib/supabase';
 import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
   console.log('Auth callback route hit at:', new Date().toISOString());
@@ -52,27 +52,17 @@ export async function GET(request: Request) {
       if (!error && authData?.user) {
         console.log('Auth successful for user:', authData.user.id);
         
-        // Check if this is a user returning from login with a pending workflow
-        if (redirectTo.startsWith('/workflow/')) {
-          console.log('Setting just_authenticated cookie for workflow redirect');
-          try {
-            const cookieStore = await cookies();
-            cookieStore.set('just_authenticated', 'true', {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax',
-              maxAge: 60, // 1 minute expiry
-              path: '/'
-            });
-          } catch (cookieError) {
-            console.error('Failed to set cookie:', cookieError);
-          }
+        // Ensure we don't redirect back to auth routes to prevent loops
+        let safeRedirectTo = redirectTo;
+        if (redirectTo.startsWith('/api/auth/') || redirectTo.includes('/auth/')) {
+          safeRedirectTo = '/';
+          console.log('Prevented auth route redirect loop, using home page instead');
         }
         
-        const finalRedirectUrl = `${origin}${redirectTo}`;
+        const finalRedirectUrl = `${origin}${safeRedirectTo}`;
         console.log('Redirecting to:', finalRedirectUrl);
         
-        // Use HTML redirect instead of NextResponse.redirect to avoid 502 errors
+        // Create response with cookies set in headers (Edge Runtime compatible)
         const htmlRedirect = `<!DOCTYPE html>
 <html>
 <head>
@@ -92,13 +82,28 @@ export async function GET(request: Request) {
 </html>`;
         
         console.log('Returning HTML redirect response');
-        return new NextResponse(htmlRedirect, {
+        
+        const response = new NextResponse(htmlRedirect, {
           status: 200,
           headers: {
             'Content-Type': 'text/html',
             'Cache-Control': 'no-cache, no-store, must-revalidate'
           }
         });
+        
+        // Set cookies via response headers for Edge Runtime compatibility
+        if (safeRedirectTo.startsWith('/workflow/')) {
+          console.log('Setting just_authenticated cookie for workflow redirect');
+          response.cookies.set('just_authenticated', 'true', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60, // 1 minute expiry
+            path: '/'
+          });
+        }
+        
+        return response;
       }
       
       console.error('Auth callback error:', error);
