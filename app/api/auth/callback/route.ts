@@ -81,7 +81,8 @@ export async function GET(request: Request) {
         
         let authData, authError;
         try {
-          const result = await supabase.auth.exchangeCodeForSession(code);
+          // Pass the code verifier to the exchange method
+          const result = await supabase.auth.exchangeCodeForSession(code, codeVerifier);
           authData = result.data;
           authError = result.error;
           console.log('Code exchange completed', { hasData: !!authData, hasError: !!authError });
@@ -95,8 +96,12 @@ export async function GET(request: Request) {
             console.log('Auth successful for user:', authData.user.id);
           }
           
+          console.log('Creating redirect response to:', `${origin}${redirectTo}`);
+          
           // Create response first
           const response = NextResponse.redirect(`${origin}${redirectTo}`);
+          
+          console.log('Setting cookies on response...');
           
           // Then set cookies on the response
           try {
@@ -121,11 +126,14 @@ export async function GET(request: Request) {
                 path: '/'
               });
             }
+            
+            console.log('Cookies set successfully, returning response');
           } catch (cookieError) {
             console.warn('Failed to set cookies:', cookieError);
             // Continue anyway - auth was successful
           }
           
+          console.log('About to return redirect response');
           return response;
         }
         
