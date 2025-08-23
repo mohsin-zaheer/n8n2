@@ -59,7 +59,8 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/?auth=error&reason=missing_verifier`);
       }
       
-      const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code, {
+      const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession({
+        authCode: code,
         codeVerifier
       });
       
