@@ -23,8 +23,6 @@ export async function GET(request: Request) {
   
   const supabase = await createServerClientInstance();
   
-  const supabase = await createServerClientInstance();
-  
   // Use getURL() for proper environment-aware redirect handling
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
