@@ -52,7 +52,8 @@ export async function GET(request: Request) {
         
         if (processedCode === code) {
           console.log('Auth code already processed, redirecting to success');
-          return NextResponse.redirect(`${origin}${redirectTo}`);
+          const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
+          return NextResponse.redirect(`${origin}${safeRedirectTo}`);
         }
         
         console.log('Creating Supabase client...');
@@ -85,40 +86,38 @@ export async function GET(request: Request) {
             console.log('Auth successful for user:', authData.user.id);
           }
           
-          console.log('Creating redirect response to:', `${origin}${redirectTo}`);
+          // Validate and sanitize redirect URL
+          const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
+          const redirectUrl = `${origin}${safeRedirectTo}`;
+          
+          console.log('Creating redirect response to:', redirectUrl);
           
           // Create response first
-          const response = NextResponse.redirect(`${origin}${redirectTo}`);
+          const response = NextResponse.redirect(redirectUrl);
           
           console.log('Setting cookies on response...');
           
-          // Then set cookies on the response
-          try {
-            response.cookies.set('processed_auth_code', code, {
+          // Set cookies with simpler error handling
+          response.cookies.set('processed_auth_code', code, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 300, // 5 minutes expiry
+            path: '/'
+          });
+          
+          // Check if this is a user returning from login with a pending workflow
+          if (safeRedirectTo.startsWith('/workflow/')) {
+            response.cookies.set('just_authenticated', 'true', {
               httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
-              maxAge: 300, // 5 minutes expiry
+              maxAge: 60, // 1 minute expiry
               path: '/'
             });
-            
-            // Check if this is a user returning from login with a pending workflow
-            if (redirectTo.startsWith('/workflow/')) {
-              response.cookies.set('just_authenticated', 'true', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 60, // 1 minute expiry
-                path: '/'
-              });
-            }
-            
-            console.log('Cookies set successfully, returning response');
-          } catch (cookieError) {
-            console.warn('Failed to set cookies:', cookieError);
-            // Continue anyway - auth was successful
           }
           
+          console.log('Cookies set successfully, returning response');
           console.log('About to return redirect response');
           return response;
         }

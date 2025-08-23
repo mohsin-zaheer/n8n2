@@ -13,13 +13,16 @@ export async function GET(request: Request) {
   const baseURL = getURL();
   const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
   
+  // Validate and sanitize redirect URL
+  const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
+  
   // Log OAuth initiation in development
   if (process.env.NODE_ENV === 'development') {
     console.log('OAuth login initiated:', {
       origin,
-      redirectTo,
+      redirectTo: safeRedirectTo,
       baseURL,
-      fullCallbackURL: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+      fullCallbackURL: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(safeRedirectTo)}`
     });
   }
   
@@ -29,7 +32,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+      redirectTo: `${baseURL}api/auth/callback?redirectTo=${encodeURIComponent(safeRedirectTo)}`,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
