@@ -6,41 +6,84 @@ import { cookies } from 'next/headers';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  console.log('Auth callback route hit at:', new Date().toISOString());
+  
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const redirectTo = searchParams.get('redirectTo') || '/';
+  const error = searchParams.get('error');
 
   // Use getURL() for consistent origin handling (same as login route)
   const baseURL = getURL();
   const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
 
+  console.log('Callback params:', {
+    hasCode: !!code,
+    codeLength: code?.length,
+    redirectTo,
+    hasError: !!error,
+    origin,
+    allParams: Object.fromEntries(searchParams.entries())
+  });
+
+  // Handle OAuth provider errors
+  if (error) {
+    console.error('OAuth provider error:', error);
+    return NextResponse.redirect(`${origin}/?auth=error&reason=${encodeURIComponent(error)}`);
+  }
+
   if (code) {
-    const supabase = await createServerClientInstance();
+    console.log('Processing auth code...');
     
-    const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
-    
-    if (!error && authData?.user) {
-      // Check if this is a user returning from login with a pending workflow
-      // The redirectTo will be like /workflow/wf_123456_abc
-      if (redirectTo.startsWith('/workflow/')) {
-        // Store a flag in cookies to indicate user just authenticated
-        const cookieStore = await cookies();
-        cookieStore.set('just_authenticated', 'true', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60, // 1 minute expiry
-          path: '/'
-        });
+    try {
+      const supabase = await createServerClientInstance();
+      console.log('Supabase client created successfully');
+      
+      const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
+      
+      console.log('Code exchange result:', {
+        hasData: !!authData,
+        hasUser: !!authData?.user,
+        hasError: !!error,
+        errorCode: error?.code,
+        errorMessage: error?.message
+      });
+      
+      if (!error && authData?.user) {
+        console.log('Auth successful for user:', authData.user.id);
+        
+        // Check if this is a user returning from login with a pending workflow
+        if (redirectTo.startsWith('/workflow/')) {
+          console.log('Setting just_authenticated cookie for workflow redirect');
+          try {
+            const cookieStore = await cookies();
+            cookieStore.set('just_authenticated', 'true', {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60, // 1 minute expiry
+              path: '/'
+            });
+          } catch (cookieError) {
+            console.error('Failed to set cookie:', cookieError);
+          }
+        }
+        
+        const finalRedirectUrl = `${origin}${redirectTo}`;
+        console.log('Redirecting to:', finalRedirectUrl);
+        return NextResponse.redirect(finalRedirectUrl);
       }
       
-      // Redirect to the intended destination (will be /workflow/[sessionId])
-      return NextResponse.redirect(`${origin}${redirectTo}`);
+      console.error('Auth callback error:', error);
+      return NextResponse.redirect(`${origin}/?auth=error&reason=exchange_failed`);
+      
+    } catch (exchangeError) {
+      console.error('Code exchange exception:', exchangeError);
+      return NextResponse.redirect(`${origin}/?auth=error&reason=exception`);
     }
-    
-    console.error('Auth callback error:', error);
   }
 
   // Authentication failed or no code provided
-  return NextResponse.redirect(`${origin}/?auth=error`);
+  console.error('No auth code provided');
+  return NextResponse.redirect(`${origin}/?auth=error&reason=no_code`);
 }
