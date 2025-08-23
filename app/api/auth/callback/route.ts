@@ -97,28 +97,39 @@ export async function GET(request: Request) {
           
           console.log('Setting cookies on response...');
           
-          // Set cookies with simpler error handling
-          response.cookies.set('processed_auth_code', code, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 300, // 5 minutes expiry
-            path: '/'
-          });
-          
-          // Check if this is a user returning from login with a pending workflow
-          if (safeRedirectTo.startsWith('/workflow/')) {
-            response.cookies.set('just_authenticated', 'true', {
+          try {
+            // Set cookies with error handling
+            response.cookies.set('processed_auth_code', code, {
               httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
-              maxAge: 60, // 1 minute expiry
+              maxAge: 300,
               path: '/'
             });
+            
+            // Check if this is a user returning from login with a pending workflow
+            if (safeRedirectTo.startsWith('/workflow/')) {
+              response.cookies.set('just_authenticated', 'true', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 60,
+                path: '/'
+              });
+            }
+            console.log('All cookies set successfully');
+          } catch (cookieError) {
+            console.error('Cookie setting error:', cookieError);
+            // Continue without cookies if they fail
           }
           
           console.log('Cookies set successfully, returning response');
           console.log('About to return redirect response');
+          
+          // Add a small delay to ensure logs are flushed
+          await new Promise(resolve => setTimeout(resolve, 10));
+          
+          console.log('Returning response now');
           return response;
         }
         
