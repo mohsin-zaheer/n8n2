@@ -90,8 +90,13 @@ export async function GET(request: Request) {
           
           console.log('Creating simple redirect to:', redirectUrl);
           
-          // Create a simple redirect without cookies for now
-          return NextResponse.redirect(redirectUrl);
+          // Try a different redirect approach
+          return new NextResponse(null, {
+            status: 302,
+            headers: {
+              'Location': redirectUrl,
+            },
+          });
         }
         
         console.error('Auth callback error:', authError);
