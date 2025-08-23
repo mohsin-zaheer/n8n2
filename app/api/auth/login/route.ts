@@ -25,13 +25,6 @@ export async function GET(request: Request) {
   
   const supabase = await createServerClientInstance();
   
-  // Generate PKCE code verifier and challenge
-  const codeVerifier = generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-  
-  // Store code verifier in httpOnly cookie
-  const cookieStore = await cookies();
-  
   // Use getURL() for proper environment-aware redirect handling
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -44,22 +37,11 @@ export async function GET(request: Request) {
     },
   });
   
-  // If OAuth URL was generated successfully, store the code verifier
   if (data?.url && !error) {
-    const response = NextResponse.redirect(data.url);
-    response.cookies.set('pkce_verifier', codeVerifier, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 600, // 10 minutes
-      path: '/'
-    });
-    
     if (process.env.NODE_ENV === 'development') {
-      console.log('PKCE verifier stored, redirecting to OAuth provider');
+      console.log('Redirecting to OAuth provider:', data.url.substring(0, 100) + '...');
     }
-    
-    return response;
+    return NextResponse.redirect(data.url);
   }
 
   if (error) {
@@ -72,23 +54,4 @@ export async function GET(request: Request) {
   return NextResponse.redirect(`${origin}/?auth=error`);
 }
 
-// PKCE helper functions
-function generateCodeVerifier(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-}
-
-async function generateCodeChallenge(verifier: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(verifier);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-}
 
