@@ -51,18 +51,7 @@ export async function GET(request: Request) {
         console.log('Attempting to exchange code for session...');
       }
       
-      // Retrieve the PKCE code verifier from cookies
-      const codeVerifier = cookieStore.get('pkce_verifier')?.value;
-      
-      if (!codeVerifier) {
-        console.error('PKCE code verifier not found in cookies');
-        return NextResponse.redirect(`${origin}/?auth=error&reason=missing_verifier`);
-      }
-      
-      const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession({
-        authCode: code,
-        codeVerifier
-      });
+      const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (!authError && authData?.user) {
         if (process.env.NODE_ENV === 'development') {
@@ -81,9 +70,6 @@ export async function GET(request: Request) {
             maxAge: 300, // 5 minutes expiry
             path: '/'
           });
-          
-          // Clear the PKCE verifier cookie since it's no longer needed
-          response.cookies.delete('pkce_verifier');
           
           // Check if this is a user returning from login with a pending workflow
           if (redirectTo.startsWith('/workflow/')) {
