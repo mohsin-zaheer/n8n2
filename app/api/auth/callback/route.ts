@@ -4,6 +4,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
+  // Basic health check - log that we reached the route
+  console.log('Auth callback route hit at:', new Date().toISOString());
+  
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
@@ -51,15 +54,29 @@ export async function GET(request: Request) {
         }
         
         console.log('Creating Supabase client...');
-        const supabase = await createServerClientInstance();
-        console.log('Supabase client created successfully');
+        let supabase;
+        try {
+          supabase = await createServerClientInstance();
+          console.log('Supabase client created successfully');
+        } catch (supabaseError) {
+          console.error('Failed to create Supabase client:', supabaseError);
+          return NextResponse.redirect(`${origin}/?auth=error&reason=supabase_client_error`);
+        }
         
         if (process.env.NODE_ENV === 'development') {
           console.log('Attempting to exchange code for session...');
         }
         
-        const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code);
-        console.log('Code exchange completed', { hasData: !!authData, hasError: !!authError });
+        let authData, authError;
+        try {
+          const result = await supabase.auth.exchangeCodeForSession(code);
+          authData = result.data;
+          authError = result.error;
+          console.log('Code exchange completed', { hasData: !!authData, hasError: !!authError });
+        } catch (exchangeError) {
+          console.error('Code exchange threw exception:', exchangeError);
+          return NextResponse.redirect(`${origin}/?auth=error&reason=code_exchange_exception`);
+        }
         
         if (!authError && authData?.user) {
           if (process.env.NODE_ENV === 'development') {
