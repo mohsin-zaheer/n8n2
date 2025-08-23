@@ -1,6 +1,7 @@
 import { createServerClientInstance } from '@/lib/supabase';
 import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -22,6 +23,22 @@ export async function GET(request: Request) {
   
   const supabase = await createServerClientInstance();
   
+  // Generate PKCE code verifier and challenge
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+  
+  // Store code verifier in cookies for the callback
+  const cookieStore = await cookies();
+  const response = new NextResponse();
+  
+  response.cookies.set('pkce_verifier', codeVerifier, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes
+    path: '/'
+  });
+  
   // Use getURL() for proper environment-aware redirect handling
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -31,6 +48,9 @@ export async function GET(request: Request) {
         access_type: 'offline',
         prompt: 'consent',
       },
+      // Add PKCE parameters
+      codeChallenge,
+      codeChallengeMethod: 'S256'
     },
   });
 
@@ -49,4 +69,24 @@ export async function GET(request: Request) {
   // Fallback redirect
   console.error('No OAuth URL returned from Supabase');
   return NextResponse.redirect(`${origin}/?auth=error`);
+}
+
+// PKCE helper functions
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
 }
