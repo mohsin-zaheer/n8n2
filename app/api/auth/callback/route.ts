@@ -1,138 +1,130 @@
 import { createServerClientInstance } from '@/lib/supabase';
 import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
+// Helper function to create safe HTML redirect
+function createHtmlRedirect(url: string): string {
+  const safeUrl = url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+  <meta http-equiv="refresh" content="0; url=${safeUrl}">
+  <script>
+    setTimeout(function() {
+      window.location.href = "${safeUrl}";
+    }, 100);
+  </script>
+</head>
+<body>
+  <p>Authentication successful. Redirecting...</p>
+  <p>If you are not redirected automatically, <a href="${safeUrl}">click here</a>.</p>
+</body>
+</html>`;
+}
+
+// Helper function to create error redirect
+function createErrorRedirect(origin: string, reason: string): NextResponse {
+  const errorUrl = `${origin}/?auth=error&reason=${encodeURIComponent(reason)}`;
+  return new NextResponse(createHtmlRedirect(errorUrl), {
+    status: 200,
+    headers: { 'Content-Type': 'text/html' },
+  });
+}
+
 export async function GET(request: Request) {
-  // Basic health check - log that we reached the route
-  console.log('Auth callback route hit at:', new Date().toISOString());
+  const startTime = Date.now();
+  console.log('Auth callback started at:', new Date().toISOString());
+  
+  let origin: string;
+  let redirectTo: string;
   
   try {
+    // Parse URL and get basic parameters
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
-    const redirectTo = searchParams.get('redirectTo') || '/';
+    redirectTo = searchParams.get('redirectTo') || '/';
     const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-
-    // Use getURL() for consistent origin handling
+    
+    // Get origin URL
     const baseURL = getURL();
-    const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
-
-    // Log all parameters for debugging in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Auth callback received:', {
-        code: code ? `${code.substring(0, 10)}...` : null,
-        codeLength: code?.length || 0,
-        redirectTo,
-        error,
-        errorDescription,
-        origin,
-        fullUrl: request.url,
-        allParams: Object.fromEntries(searchParams.entries())
-      });
-    }
-
-    // Handle OAuth errors from the provider
+    origin = baseURL.slice(0, -1);
+    
+    // Validate redirect URL
+    const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
+    const finalRedirectUrl = `${origin}${safeRedirectTo}`;
+    
+    console.log('Callback params:', { 
+      hasCode: !!code, 
+      redirectTo: safeRedirectTo, 
+      hasError: !!error 
+    });
+    
+    // Handle OAuth provider errors
     if (error) {
-      console.error('OAuth provider error:', { error, errorDescription });
-      return NextResponse.redirect(`${origin}/?auth=error&reason=${encodeURIComponent(error)}`);
+      console.error('OAuth provider error:', error);
+      return createErrorRedirect(origin, error);
     }
-
-    if (code) {
-      try {
-        console.log('Processing auth code...');
-        
-        // Check if we've already processed this code recently
-        const cookieStore = await cookies();
-        console.log('Got cookie store');
-        
-        const processedCode = cookieStore.get('processed_auth_code')?.value;
-        
-        if (processedCode === code) {
-          console.log('Auth code already processed, redirecting to success');
-          const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
-          return NextResponse.redirect(`${origin}${safeRedirectTo}`);
-        }
-        
-        console.log('Creating Supabase client...');
-        let supabase;
-        try {
-          supabase = await createServerClientInstance();
-          console.log('Supabase client created successfully');
-        } catch (supabaseError) {
-          console.error('Failed to create Supabase client:', supabaseError);
-          return NextResponse.redirect(`${origin}/?auth=error&reason=supabase_client_error`);
-        }
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Attempting to exchange code for session...');
-        }
-        
-        let authData, authError;
-        try {
-          const result = await supabase.auth.exchangeCodeForSession(code);
-          authData = result.data;
-          authError = result.error;
-          console.log('Code exchange completed', { hasData: !!authData, hasError: !!authError });
-        } catch (exchangeError) {
-          console.error('Code exchange threw exception:', exchangeError);
-          return NextResponse.redirect(`${origin}/?auth=error&reason=code_exchange_exception`);
-        }
-        
-        if (!authError && authData?.user) {
-          console.log('Auth successful for user:', authData.user.id);
-          
-          // Validate and sanitize redirect URL
-          const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/';
-          const redirectUrl = `${origin}${safeRedirectTo}`;
-          
-          console.log('Creating HTML redirect to:', redirectUrl);
-          
-          // Try HTML redirect instead of HTTP redirect
-          const htmlRedirect = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta http-equiv="refresh" content="0; url=${redirectUrl}">
-              <script>window.location.href = "${redirectUrl}";</script>
-            </head>
-            <body>
-              <p>Redirecting to <a href="${redirectUrl}">${redirectUrl}</a>...</p>
-            </body>
-            </html>
-          `;
-          
-          return new NextResponse(htmlRedirect, {
-            status: 200,
-            headers: {
-              'Content-Type': 'text/html',
-            },
-          });
-        }
-        
-        console.error('Auth callback error:', authError);
-        return NextResponse.redirect(`${origin}/?auth=error&reason=exchange_failed`);
-      } catch (err) {
-        console.error('Auth callback exception:', err);
-        return NextResponse.redirect(`${origin}/?auth=error&reason=exception`);
-      }
+    
+    // Handle missing code
+    if (!code) {
+      console.error('No auth code provided');
+      return createErrorRedirect(origin, 'no_code');
     }
-
-    // No code provided
-    console.error('Auth callback: No code parameter provided');
-    return NextResponse.redirect(`${origin}/?auth=error&reason=no_code`);
-  } catch (outerErr) {
-    console.error('Auth callback outer exception:', outerErr);
-    // Fallback redirect in case of complete failure
+    
+    // Process the auth code
+    console.log('Processing auth code...');
+    
+    let supabase;
     try {
-      const baseURL = getURL();
-      const origin = baseURL.slice(0, -1);
-      return NextResponse.redirect(`${origin}/?auth=error&reason=server_error`);
-    } catch (fallbackErr) {
-      console.error('Fallback redirect failed:', fallbackErr);
-      return new NextResponse('Internal Server Error', { status: 500 });
+      supabase = await createServerClientInstance();
+    } catch (supabaseError) {
+      console.error('Supabase client creation failed:', supabaseError);
+      return createErrorRedirect(origin, 'supabase_error');
     }
+    
+    // Exchange code for session
+    let authResult;
+    try {
+      authResult = await supabase.auth.exchangeCodeForSession(code);
+    } catch (exchangeError) {
+      console.error('Code exchange failed:', exchangeError);
+      return createErrorRedirect(origin, 'exchange_failed');
+    }
+    
+    // Check auth result
+    if (authResult.error || !authResult.data?.user) {
+      console.error('Auth failed:', authResult.error);
+      return createErrorRedirect(origin, 'auth_failed');
+    }
+    
+    // Success - create redirect
+    console.log('Auth successful for user:', authResult.data.user.id);
+    console.log('Redirecting to:', finalRedirectUrl);
+    console.log('Callback completed in:', Date.now() - startTime, 'ms');
+    
+    return new NextResponse(createHtmlRedirect(finalRedirectUrl), {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+    });
+    
+  } catch (error) {
+    console.error('Auth callback fatal error:', error);
+    
+    // Fallback error response
+    const fallbackUrl = origin ? `${origin}/?auth=error&reason=server_error` : 'https://n8n.geniusai.biz/?auth=error&reason=server_error';
+    
+    return new NextResponse(createHtmlRedirect(fallbackUrl), {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
   }
 }
