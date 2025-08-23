@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   const startTime = Date.now();
   console.log('Auth callback started at:', new Date().toISOString());
   
-  let origin: string;
+  let origin: string = 'https://n8n.geniusai.biz'; // Initialize with fallback
   let redirectTo: string;
   
   try {
