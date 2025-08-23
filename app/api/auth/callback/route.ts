@@ -1,13 +1,18 @@
 import { createServerClientInstance } from '@/lib/supabase';
+import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const redirectTo = searchParams.get('redirectTo') || '/';
+
+  // Use getURL() for consistent origin handling (same as login route)
+  const baseURL = getURL();
+  const origin = baseURL.slice(0, -1); // Remove trailing slash for origin
 
   if (code) {
     const supabase = await createServerClientInstance();
