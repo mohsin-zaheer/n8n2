@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  output: 'standalone',
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
@@ -25,9 +26,15 @@ const nextConfig = {
           key: 'Referrer-Policy',
           value: 'strict-origin-when-cross-origin',
         },
+        {
+          key: 'X-XSS-Protection',
+          value: '1; mode=block',
+        },
       ],
     },
   ],
+  compress: true,
+  poweredByHeader: false,
 }
 
 module.exports = nextConfig
