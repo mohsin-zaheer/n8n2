@@ -5,14 +5,15 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const redirectTo = searchParams.get('redirectTo') || '/';
-  
+
   const supabase = await createServerClientInstance();
-  
-  // Use getURL() for proper environment-aware redirect handling
+
+  // Supabase will handle /auth/v1/callback internally
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${getURL()}api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+      // Send user back to the correct page after login
+      redirectTo: `${getURL()}${redirectTo}`,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',

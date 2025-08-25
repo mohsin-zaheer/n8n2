@@ -15,24 +15,15 @@ function LoginContent() {
   const supabase = createClient();
 
   useEffect(() => {
-    // Check if user is already authenticated
     const checkAuth = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          // User is already authenticated
-          const pendingSession = localStorage.getItem(
-            "pending_workflow_session"
-          );
-
+          const pendingSession = localStorage.getItem("pending_workflow_session");
           if (pendingSession && returnUrl === "/workflow/create") {
-            // User has a pending workflow, redirect to create it
             router.push("/workflow/create");
           } else {
-            // Redirect to return URL
             router.push(returnUrl);
           }
         }
@@ -51,19 +42,16 @@ function LoginContent() {
       setLoading(true);
       setError("");
 
-      // Store the pending session info for retrieval after OAuth
       const pendingSession = localStorage.getItem("pending_workflow_session");
       if (pendingSession) {
-        // Store it in sessionStorage too as backup
         sessionStorage.setItem("pending_workflow_session", pendingSession);
       }
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${
-            window.location.origin
-          }/api/auth/callback?redirectTo=${encodeURIComponent(returnUrl)}`,
+          // Supabase will handle /auth/v1/callback automatically
+          redirectTo: `${window.location.origin}${returnUrl}`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -71,9 +59,7 @@ function LoginContent() {
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "Failed to sign in. Please try again.");
@@ -152,8 +138,7 @@ function LoginContent() {
               </div>
 
               <p className="mt-6 text-sm text-neutral-500">
-                By signing in, you agree to our Terms of Service and Privacy
-                Policy
+                By signing in, you agree to our Terms of Service and Privacy Policy
               </p>
             </div>
           </div>
