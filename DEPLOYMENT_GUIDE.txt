@@ -1,4 +1,4 @@
-# N8N Workflow Builder - Ubuntu 22 VPS Deployment Guide
+# N8N Workflow Builder - Ubuntu VPS Deployment Guide
 
 ## Prerequisites
 - Ubuntu 22.04 VPS with root access
