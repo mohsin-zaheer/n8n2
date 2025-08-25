@@ -28,6 +28,13 @@ if (!isProduction) {
 // Load environment variables BEFORE any module imports
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 
+// Use local MCP server for build workflow
+if (!process.env.MCP_SERVER_URL) {
+  process.env.MCP_SERVER_URL = 'http://localhost:3001/mcp';
+  process.env.MCP_API_KEY = 'local-development-key';
+  process.env.MCP_PROFILE = 'intermediate-cuckoo-DIapDk';
+}
+
 // Type imports can stay as they don't execute code
 import type { 
   DiscoveryResult, 

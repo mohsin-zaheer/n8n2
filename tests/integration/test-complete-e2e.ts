@@ -28,6 +28,11 @@ process.env.NODE_ENV = 'test';
 process.env.BUILD_WORKFLOW = 'true';
 process.env.LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
+// Use local MCP server for tests
+process.env.MCP_SERVER_URL = process.env.MCP_SERVER_URL || 'http://localhost:3001/mcp';
+process.env.MCP_API_KEY = process.env.MCP_API_KEY || 'local-development-key';
+process.env.MCP_PROFILE = process.env.MCP_PROFILE || 'intermediate-cuckoo-DIapDk';
+
 // CLI args
 const args = process.argv.slice(2);
 const isVerbose = args.includes('--verbose') || args.includes('-v');
