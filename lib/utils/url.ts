@@ -24,5 +24,5 @@ export const getURL = (): string => {
  */
 export const isDevelopment = (): boolean => {
   return process.env.NODE_ENV === 'development' || 
-         !process.env.NEXT_PUBLIC_SITE_URL
+         !process.env.NEXTAUTH_URL
 }
