@@ -23,7 +23,8 @@
     "test:document": "NODE_ENV=test tsx tests/integration/test-documentation-phase.ts",
     "test:complete": "NODE_ENV=test tsx tests/integration/test-complete-e2e.ts",
     "test:complete:e2e": "NODE_ENV=test tsx tests/integration/test-complete-e2e.ts",
-    "test:buildworkflow": "tsx scripts/build-workflow.ts"
+    "test:buildworkflow": "tsx scripts/build-workflow.ts",
+    "mcp:test": "node test-mcp-connection.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.24.0",
