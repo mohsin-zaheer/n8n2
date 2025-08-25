@@ -51,6 +51,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ANTHROPIC_API_KEY=your_anthropic_api_key
 SMITHERY_API_KEY=your_smithery_api_key
+MCP_SERVER_URL=https://server.smithery.ai/@vincentmcleese/n8n-mcp/mcp
+MCP_API_KEY=28d8026f-fad7-4bc6-87c5-9fcacba57fde
+MCP_PROFILE=intermediate-cuckoo-DIapDk
 NEXTAUTH_SECRET=your_nextauth_secret
 NEXTAUTH_URL=https://yourdomain.com
 NODE_ENV=production
@@ -178,7 +181,31 @@ npm install
 npm run build
 pm2 restart n8n-workflow-builder
 
-## Step 10: Database Setup (if using Supabase)
+## Step 10: MCP Server Configuration
+
+### Configure Smithery.ai MCP Connection
+The application uses Smithery.ai's hosted MCP service for N8N workflow operations.
+
+### Verify MCP configuration in environment:
+- MCP_SERVER_URL: Points to your Smithery.ai MCP endpoint
+- MCP_API_KEY: Your Smithery.ai API key for authentication
+- MCP_PROFILE: Your specific profile identifier
+
+### Test MCP connection:
+curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+     -H "Content-Type: application/json" \
+     https://server.smithery.ai/@vincentmcleese/n8n-mcp/mcp/health
+
+### MCP Health Check via Application:
+Once deployed, test the MCP integration:
+curl https://yourdomain.com/api/health
+
+This endpoint will verify:
+- Environment variables are properly set
+- MCP server connectivity
+- Authentication with Smithery.ai service
+
+## Step 11: Database Setup (if using Supabase)
 
 ### Ensure your Supabase project is configured:
 1. Create tables as needed
@@ -186,11 +213,17 @@ pm2 restart n8n-workflow-builder
 3. Configure authentication providers
 4. Update environment variables with correct URLs and keys
 
-## Step 11: Health Checks
+## Step 12: Health Checks
 
 ### Test application endpoints
 curl -I https://yourdomain.com
 curl https://yourdomain.com/api/health
+
+### Verify MCP integration
+The health endpoint will show MCP status:
+- MCP server connectivity
+- Authentication status
+- Available MCP tools and capabilities
 
 ### Check system resources
 htop
@@ -215,7 +248,13 @@ free -h
    - Verify domain DNS is pointing to your server
    - Check certbot logs: sudo journalctl -u certbot
 
-4. **Performance issues**
+4. **MCP connection issues**
+   - Verify MCP environment variables are set correctly
+   - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_MCP_API_KEY" MCP_SERVER_URL/health
+   - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
+   - Ensure Smithery.ai service is operational
+
+5. **Performance issues**
    - Monitor system resources: htop, free -h
    - Check PM2 monitoring: pm2 monit
    - Consider enabling PM2 cluster mode for multiple instances
@@ -245,13 +284,14 @@ free -h
 
 - [ ] Domain DNS configured
 - [ ] SSL certificate installed
-- [ ] Environment variables set
+- [ ] Environment variables set (including MCP configuration)
 - [ ] Application builds successfully
 - [ ] PM2 configured for auto-restart
 - [ ] Nginx configured and tested
 - [ ] Firewall configured
 - [ ] Database connected and accessible
-- [ ] Health check endpoint responding
+- [ ] MCP server connection verified
+- [ ] Health check endpoint responding (including MCP status)
 - [ ] Monitoring set up
 - [ ] Backup strategy implemented
 
