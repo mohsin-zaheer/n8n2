@@ -1,0 +1,258 @@
+# N8N Workflow Builder - Ubuntu 22 VPS Deployment Guide
+
+## Prerequisites
+- Ubuntu 22.04 VPS with root access
+- Domain name pointed to your VPS IP
+- At least 2GB RAM and 20GB storage
+
+## Step 1: Server Setup and Dependencies
+
+### Update system packages
+sudo apt update && sudo apt upgrade -y
+
+### Install Node.js 18.x
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+### Install additional dependencies
+sudo apt install -y curl git nginx certbot python3-certbot-nginx build-essential
+
+### Install PM2 globally
+npm install -g pm2
+
+### Verify installations
+node --version
+npm --version
+pm2 --version
+
+## Step 2: Clone and Setup Application
+
+### Navigate to web directory
+cd /var/www
+
+### Clone your repository
+sudo git clone <YOUR_REPO_URL> n8n-workflow-builder
+sudo chown -R $USER:$USER /var/www/n8n-workflow-builder
+cd n8n-workflow-builder
+
+### Install dependencies
+npm install
+
+## Step 3: Environment Configuration
+
+### Create production environment file
+cp .env.example .env.production
+# OR create new file:
+nano .env.production
+
+### Required environment variables:
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+SMITHERY_API_KEY=your_smithery_api_key
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=https://yourdomain.com
+NODE_ENV=production
+
+### Set proper permissions
+chmod 600 .env.production
+
+## Step 4: Build Application
+
+### Build for production
+npm run build
+
+### Test the build locally
+npm run start:prod
+
+## Step 5: PM2 Process Management
+
+### Start application with PM2
+pm2 start npm --name "n8n-workflow-builder" -- run start:prod
+
+### Configure PM2 to start on boot
+pm2 startup
+# Follow the instructions provided by the command above
+
+### Save PM2 configuration
+pm2 save
+
+### Verify PM2 status
+pm2 status
+pm2 logs n8n-workflow-builder
+
+## Step 6: Nginx Configuration
+
+### Create Nginx configuration
+sudo nano /etc/nginx/sites-available/yourdomain.com
+
+### Add this configuration (replace yourdomain.com):
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # Security headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Referrer-Policy strict-origin-when-cross-origin;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 86400;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
+    # Static files caching
+    location /_next/static/ {
+        proxy_pass http://localhost:3000;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Favicon and robots.txt
+    location ~* \.(ico|css|js|gif|jpe?g|png|svg|woff|woff2|ttf|eot)$ {
+        proxy_pass http://localhost:3000;
+        add_header Cache-Control "public, max-age=86400";
+    }
+}
+
+### Enable the site
+sudo ln -s /etc/nginx/sites-available/yourdomain.com /etc/nginx/sites-enabled/
+
+### Test Nginx configuration
+sudo nginx -t
+
+### Reload Nginx
+sudo systemctl reload nginx
+
+## Step 7: SSL Certificate with Let's Encrypt
+
+### Install SSL certificate
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+### Test SSL renewal
+sudo certbot renew --dry-run
+
+## Step 8: Firewall Configuration
+
+### Configure UFW firewall
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw --force enable
+
+### Check firewall status
+sudo ufw status
+
+## Step 9: Monitoring and Maintenance
+
+### Monitor PM2 processes
+pm2 monit
+
+### View application logs
+pm2 logs n8n-workflow-builder
+
+### Restart application
+pm2 restart n8n-workflow-builder
+
+### Update application
+cd /var/www/n8n-workflow-builder
+git pull origin main
+npm install
+npm run build
+pm2 restart n8n-workflow-builder
+
+## Step 10: Database Setup (if using Supabase)
+
+### Ensure your Supabase project is configured:
+1. Create tables as needed
+2. Set up Row Level Security (RLS) policies
+3. Configure authentication providers
+4. Update environment variables with correct URLs and keys
+
+## Step 11: Health Checks
+
+### Test application endpoints
+curl -I https://yourdomain.com
+curl https://yourdomain.com/api/health
+
+### Check system resources
+htop
+df -h
+free -h
+
+## Troubleshooting
+
+### Common issues and solutions:
+
+1. **Application won't start**
+   - Check PM2 logs: pm2 logs n8n-workflow-builder
+   - Verify environment variables are set correctly
+   - Ensure all dependencies are installed
+
+2. **502 Bad Gateway**
+   - Check if application is running: pm2 status
+   - Verify Nginx configuration: sudo nginx -t
+   - Check if port 3000 is accessible: netstat -tlnp | grep 3000
+
+3. **SSL certificate issues**
+   - Verify domain DNS is pointing to your server
+   - Check certbot logs: sudo journalctl -u certbot
+
+4. **Performance issues**
+   - Monitor system resources: htop, free -h
+   - Check PM2 monitoring: pm2 monit
+   - Consider enabling PM2 cluster mode for multiple instances
+
+### Useful commands:
+- Restart Nginx: sudo systemctl restart nginx
+- Restart PM2: pm2 restart all
+- View system logs: sudo journalctl -f
+- Check disk usage: du -sh /var/www/n8n-workflow-builder
+
+## Security Recommendations
+
+1. **Regular updates**
+   - Keep system packages updated: sudo apt update && sudo apt upgrade
+   - Update Node.js dependencies: npm audit fix
+
+2. **Backup strategy**
+   - Set up automated backups of your database
+   - Create regular snapshots of your VPS
+
+3. **Monitoring**
+   - Set up uptime monitoring
+   - Configure log rotation
+   - Monitor resource usage
+
+## Production Checklist
+
+- [ ] Domain DNS configured
+- [ ] SSL certificate installed
+- [ ] Environment variables set
+- [ ] Application builds successfully
+- [ ] PM2 configured for auto-restart
+- [ ] Nginx configured and tested
+- [ ] Firewall configured
+- [ ] Database connected and accessible
+- [ ] Health check endpoint responding
+- [ ] Monitoring set up
+- [ ] Backup strategy implemented
+
+Your N8N Workflow Builder should now be successfully deployed and accessible at https://yourdomain.com
