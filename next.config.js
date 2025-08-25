@@ -7,7 +7,7 @@ const nextConfig = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
-    domains: ['lh3.googleusercontent.com'], // Allow Google profile images
+    domains: ['lh3.googleusercontent.com'],
   },
   headers: async () => [
     {
@@ -20,6 +20,10 @@ const nextConfig = {
         {
           key: 'X-Content-Type-Options',
           value: 'nosniff',
+        },
+        {
+          key: 'X-XSS-Protection',
+          value: '1; mode=block',
         },
         {
           key: 'Referrer-Policy',
