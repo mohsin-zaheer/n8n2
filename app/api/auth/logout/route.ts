@@ -1,10 +1,8 @@
 import { createServerClientInstance } from '@/lib/supabase';
-import { getEnv } from '@/lib/config/env';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const env = getEnv();
-  const baseUrl = env.NEXTAUTH_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL;
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
   
   const supabase = await createServerClientInstance();
   
