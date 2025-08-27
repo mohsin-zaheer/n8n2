@@ -150,27 +150,7 @@ export class WorkflowQueries {
     try {
       console.log('Querying workflow_sessions table...');
       
-      // First, let's try to get all workflows to see what we have
-      const { data: allData, error: allError } = await this.supabase
-        .from("workflow_sessions")
-        .select(`
-          session_id,
-          created_at,
-          updated_at,
-          state,
-          is_vetted,
-          user_id
-        `)
-        .order("created_at", { ascending: false })
-        .limit(10); // Just get a few to debug
-
-      console.log('All workflows query result:', { allData, allError });
-      
-      if (allData && allData.length > 0) {
-        console.log('Sample workflow state structure:', allData[0].state);
-      }
-
-      // Now try the filtered query
+      // Get all active workflows (not archived)
       const { data, error } = await this.supabase
         .from("workflow_sessions")
         .select(`
@@ -179,47 +159,61 @@ export class WorkflowQueries {
           updated_at,
           state,
           is_vetted,
-          user_id
+          user_id,
+          user_prompt
         `)
+        .eq("is_active", true)
+        .eq("archived", false)
         .not("state", "is", null)
         .order("created_at", { ascending: false })
         .limit(limit);
 
-      console.log('Filtered workflows query result:', { data, error, count: data?.length });
+      console.log('Workflows query result:', { data, error, count: data?.length });
 
-      if (error || !data) {
+      if (error) {
         console.error("Error listing public workflows:", error);
         return [];
       }
 
+      if (!data || data.length === 0) {
+        console.log('No workflows found in database');
+        return [];
+      }
+
+      console.log('Sample workflow data:', data[0]);
+
       const workflows = data
         .map((row) => {
           const state = row.state as any;
-          console.log('Processing workflow:', row.session_id, 'state:', state);
+          console.log('Processing workflow:', row.session_id, 'state keys:', Object.keys(state || {}));
           
-          // More flexible filtering - accept workflows with any SEO data or completed workflows
-          const hasSeo = state?.seo;
-          const isComplete = state?.phase === 'complete' || state?.phase === 'documentation' || state?.phase === 'building';
-          
-          if (!hasSeo && !isComplete) {
-            console.log('Skipping workflow - no SEO and not complete:', row.session_id);
+          // Accept any workflow that has state data
+          if (!state) {
+            console.log('Skipping workflow - no state:', row.session_id);
             return null;
           }
 
           // For now, we'll skip user data fetching on the client side
-          // This should be handled by a server-side API endpoint
           const user = null;
+
+          // Extract workflow name from various possible locations
+          const workflowName = 
+            state.seo?.title ||
+            state.workflow?.settings?.name || 
+            state.settings?.name || 
+            row.user_prompt?.slice(0, 50) + '...' ||
+            'Untitled Workflow';
 
           const workflow = {
             sessionId: row.session_id,
             workflow: {
               nodes: state.workflow?.nodes || state.nodes || [],
-              settings: state.workflow?.settings || state.settings || {},
+              settings: state.workflow?.settings || state.settings || { name: workflowName },
             },
             seo: state.seo || {
               slug: row.session_id,
-              title: state.workflow?.settings?.name || state.settings?.name || 'Untitled Workflow',
-              description: state.userPrompt || 'Automated workflow',
+              title: workflowName,
+              description: row.user_prompt || state.userPrompt || 'Automated workflow',
               keywords: [],
               businessValue: 'Automation',
               category: 'Automation' as any,
@@ -227,19 +221,19 @@ export class WorkflowQueries {
               generatedAt: row.created_at
             },
             configAnalysis: state.configAnalysis,
-            userPrompt: state.userPrompt || "",
+            userPrompt: row.user_prompt || state.userPrompt || "",
             createdAt: row.created_at,
             updatedAt: row.updated_at,
             isVetted: row.is_vetted || false,
             user: user,
           };
           
-          console.log('Created workflow object:', workflow);
+          console.log('Created workflow object for:', row.session_id, 'title:', workflowName);
           return workflow;
         })
         .filter(Boolean) as WorkflowBySlugResponse[];
 
-      console.log('Final workflows array:', workflows.length, workflows);
+      console.log('Final workflows array:', workflows.length, 'workflows');
       return workflows;
     } catch (error) {
       console.error("Error listing public workflows:", error);
