@@ -15,47 +15,40 @@ function LoginContent() {
   const supabase = createClient();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Handle OAuth callback if present
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
+    // Listen for auth state changes (including OAuth callbacks)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Successfully authenticated, now check for pending workflow
+        const pendingSession = localStorage.getItem("pending_workflow_session") || 
+                              sessionStorage.getItem("pending_workflow_session");
         
-        if (code) {
-          // This is an OAuth callback, let Supabase handle it
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          
-          if (error) {
-            console.error("OAuth callback error:", error);
-            setError("Authentication failed. Please try again.");
-            setCheckingSession(false);
-            return;
-          }
-          
-          if (data.user) {
-            // Successfully authenticated, now check for pending workflow
-            const pendingSession = localStorage.getItem("pending_workflow_session") || 
-                                  sessionStorage.getItem("pending_workflow_session");
-            
-            if (pendingSession) {
-              try {
-                const sessionData = JSON.parse(pendingSession);
-                if (sessionData.workflowSessionId) {
-                  router.push(`/workflow/${sessionData.workflowSessionId}`);
-                  return;
-                }
-              } catch (e) {
-                console.error("Error parsing pending session:", e);
-              }
+        if (pendingSession) {
+          try {
+            const sessionData = JSON.parse(pendingSession);
+            if (sessionData.workflowSessionId) {
+              router.push(`/workflow/${sessionData.workflowSessionId}`);
+              return;
             }
-            
-            // Otherwise redirect to the return URL
-            router.push(returnUrl);
-            return;
+          } catch (e) {
+            console.error("Error parsing pending session:", e);
           }
         }
+        
+        // Otherwise redirect to the return URL
+        router.push(returnUrl);
+        return;
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        setCheckingSession(false);
+      }
+    });
 
-        // No OAuth callback, check if already authenticated
+    // Also check current auth state on mount
+    const checkCurrentAuth = async () => {
+      try {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
@@ -77,16 +70,21 @@ function LoginContent() {
           
           // Otherwise redirect to the return URL
           router.push(returnUrl);
+        } else {
+          setCheckingSession(false);
         }
       } catch (error) {
         console.error("Error checking auth:", error);
-        setError("Authentication error. Please try again.");
-      } finally {
         setCheckingSession(false);
       }
     };
 
-    checkAuth();
+    checkCurrentAuth();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router, returnUrl, supabase.auth]);
 
   const handleGoogleLogin = async () => {
