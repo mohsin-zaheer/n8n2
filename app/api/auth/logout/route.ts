@@ -2,7 +2,7 @@ import { createServerClientInstance } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NODE_ENV === 'development'? 'http://localhost:3000': "https://n8n.geniusai.biz";
   
   const supabase = await createServerClientInstance();
   
