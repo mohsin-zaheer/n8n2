@@ -195,82 +195,85 @@ export class WorkflowQueries {
 
       console.log('Sample workflow data:', data[0]);
 
-      const workflows = data
-        .map((row) => {
-          const state = row.state as any;
-          console.log('Processing workflow:', row.session_id, {
-            stateKeys: Object.keys(state || {}),
-            isActive: row.is_active,
-            archived: row.archived,
-            hasUserPrompt: !!row.user_prompt,
-            stateType: typeof state
-          });
-          
-          // Accept any workflow that has state data
-          if (!state) {
-            console.log('Skipping workflow - no state:', row.session_id);
-            return null;
-          }
-
-          // Skip archived workflows if explicitly archived
-          if (row.archived === true) {
-            console.log('Skipping workflow - archived:', row.session_id);
-            return null;
-          }
-
-          // Fetch user data if user_id exists
-          let user = null;
-          if (row.user_id) {
-            try {
-              const response = await fetch(`/api/users/${row.user_id}`);
-              if (response.ok) {
-                user = await response.json();
-              }
-            } catch (userFetchError) {
-              console.error("Error fetching user data for workflow:", row.session_id, userFetchError);
-              // Continue without user data
+      const workflows = await Promise.all(
+        data
+          .map(async (row) => {
+            const state = row.state as any;
+            console.log('Processing workflow:', row.session_id, {
+              stateKeys: Object.keys(state || {}),
+              isActive: row.is_active,
+              archived: row.archived,
+              hasUserPrompt: !!row.user_prompt,
+              stateType: typeof state
+            });
+            
+            // Accept any workflow that has state data
+            if (!state) {
+              console.log('Skipping workflow - no state:', row.session_id);
+              return null;
             }
-          }
 
-          // Extract workflow name from various possible locations
-          const workflowName = 
-            state.seo?.title ||
-            state.workflow?.settings?.name || 
-            state.settings?.name || 
-            (row.user_prompt && row.user_prompt.length > 50 ? row.user_prompt.slice(0, 50) + '...' : row.user_prompt) ||
-            'Untitled Workflow';
+            // Skip archived workflows if explicitly archived
+            if (row.archived === true) {
+              console.log('Skipping workflow - archived:', row.session_id);
+              return null;
+            }
 
-          const workflow = {
-            sessionId: row.session_id,
-            workflow: {
-              nodes: state.workflow?.nodes || state.nodes || [],
-              settings: state.workflow?.settings || state.settings || { name: workflowName },
-            },
-            seo: state.seo || {
-              slug: row.session_id,
-              title: workflowName,
-              description: row.user_prompt || state.userPrompt || 'Automated workflow',
-              keywords: [],
-              businessValue: 'Automation',
-              category: 'Automation' as any,
-              integrations: [],
-              generatedAt: row.created_at
-            },
-            configAnalysis: state.configAnalysis,
-            userPrompt: row.user_prompt || state.userPrompt || "",
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            isVetted: row.is_vetted || false,
-            user: user,
-          };
-          
-          console.log('Created workflow object for:', row.session_id, 'title:', workflowName);
-          return workflow;
-        })
-        .filter(Boolean) as WorkflowBySlugResponse[];
+            // Fetch user data if user_id exists
+            let user = null;
+            if (row.user_id) {
+              try {
+                const response = await fetch(`/api/users/${row.user_id}`);
+                if (response.ok) {
+                  user = await response.json();
+                }
+              } catch (userFetchError) {
+                console.error("Error fetching user data for workflow:", row.session_id, userFetchError);
+                // Continue without user data
+              }
+            }
 
-      console.log('Final workflows array:', workflows.length, 'workflows');
-      return workflows;
+            // Extract workflow name from various possible locations
+            const workflowName = 
+              state.seo?.title ||
+              state.workflow?.settings?.name || 
+              state.settings?.name || 
+              (row.user_prompt && row.user_prompt.length > 50 ? row.user_prompt.slice(0, 50) + '...' : row.user_prompt) ||
+              'Untitled Workflow';
+
+            const workflow = {
+              sessionId: row.session_id,
+              workflow: {
+                nodes: state.workflow?.nodes || state.nodes || [],
+                settings: state.workflow?.settings || state.settings || { name: workflowName },
+              },
+              seo: state.seo || {
+                slug: row.session_id,
+                title: workflowName,
+                description: row.user_prompt || state.userPrompt || 'Automated workflow',
+                keywords: [],
+                businessValue: 'Automation',
+                category: 'Automation' as any,
+                integrations: [],
+                generatedAt: row.created_at
+              },
+              configAnalysis: state.configAnalysis,
+              userPrompt: row.user_prompt || state.userPrompt || "",
+              createdAt: row.created_at,
+              updatedAt: row.updated_at,
+              isVetted: row.is_vetted || false,
+              user: user,
+            };
+            
+            console.log('Created workflow object for:', row.session_id, 'title:', workflowName);
+            return workflow;
+          })
+      );
+
+      const filteredWorkflows = workflows.filter(Boolean) as WorkflowBySlugResponse[];
+
+      console.log('Final workflows array:', filteredWorkflows.length, 'workflows');
+      return filteredWorkflows;
     } catch (error) {
       console.error("Error listing public workflows:", error);
       return [];
