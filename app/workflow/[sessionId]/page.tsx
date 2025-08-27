@@ -795,7 +795,7 @@ export default function WorkflowStatusPage() {
                   </div>
                   
                   <div className="text-center">
-                    <h3 className="text-xl font-semibold text-neutral-900 mb-2">
+                    <h3 className="text-xl mt-3 font-semibold text-neutral-900 mb-2">
                       Discovering your workflow
                     </h3>
                     <p className="text-sm text-neutral-600 max-w-md leading-relaxed">

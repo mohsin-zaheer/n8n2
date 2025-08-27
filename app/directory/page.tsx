@@ -407,7 +407,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                {workflow.state?.settings?.name || 'Untitled Workflow'}
+                {workflow.state?.seo?.slug || 'Untitled Workflow'}
               </h3>
               {workflow.is_vetted && <VettedBadge className="flex-shrink-0" />}
             </div>
