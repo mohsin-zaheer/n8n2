@@ -276,21 +276,6 @@ export default async function WorkflowPublicPage({
                   <dt className="text-neutral-500">Category</dt>
                   <dd>{seo?.category || "Automation"}</dd>
                 </div>
-                <div className="flex justify-between items-center">
-                  <dt className="text-neutral-500">Created by</dt>
-                  <dd className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span className="text-xs font-medium text-blue-600">
-                        {/* Mock user initials - replace with real user data */}
-                        JD
-                      </span>
-                    </div>
-                    <span className="text-sm">
-                      {/* Mock user name - replace with real user data */}
-                      John Doe
-                    </span>
-                  </dd>
-                </div>
                 <div className="flex justify-between">
                   <dt className="text-neutral-500">Created at</dt>
                   <dd>{new Date(createdAt).toLocaleDateString()}</dd>
