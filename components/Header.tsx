@@ -123,7 +123,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               <ul className="py-2">
                 <li>
                   <Link
-                    href="/directory?search=leadgen"
+                    href="/directory?search=lead"
                     role="menuitem"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem"
                   >
@@ -255,7 +255,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               <ul className="min-h-0 overflow-hidden rounded-lg border dark:border-neutral-800 bg-white/95 dark:bg-neutral-900">
                 <li>
                   <Link
-                    href="/directory?search=leadgen"
+                    href="/directory?search=lead"
                     onClick={closeMobile}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem"
                   >

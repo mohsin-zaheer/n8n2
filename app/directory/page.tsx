@@ -197,7 +197,7 @@ const WorkflowDirectoryPage = () => {
 
   return (
     <div className="min-h-screen bg-[rgb(236,244,240)]">
-      <div className="max-w-screen-lg  mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="max-w-screen-lg  mx-auto px-4 py-4 sm:py-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
