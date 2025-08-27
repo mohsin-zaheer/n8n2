@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/Header";
+import { BrowserBlocker } from "@/components/BrowserBlocker";
 
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default function RootLayout({
         </Script>
         
         <div className="min-h-screen">
+          <BrowserBlocker />
           <Header />
           <main>{children}</main>
         </div>
