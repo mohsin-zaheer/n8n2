@@ -1,8 +1,10 @@
 import { createServerClientInstance } from '@/lib/supabase';
+import { getEnv } from '@/lib/config/env';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { origin } = new URL(request.url);
+  const env = getEnv();
+  const baseUrl = env.NEXTAUTH_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL;
   
   const supabase = await createServerClientInstance();
   
@@ -13,7 +15,7 @@ export async function POST(request: Request) {
   }
   
   // Always redirect to home after logout attempt
-  return NextResponse.redirect(`${origin}/`, {
+  return NextResponse.redirect(`${baseUrl}/`, {
     status: 302,
   });
 }
