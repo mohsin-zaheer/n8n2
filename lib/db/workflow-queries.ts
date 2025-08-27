@@ -76,27 +76,9 @@ export class WorkflowQueries {
         return null;
       }
 
-      // Extract user information if user_id exists
-      let user = null;
-      if (data.user_id) {
-        try {
-          // Fetch user data separately from auth.users
-          const { data: userData, error: userError } = await this.supabase.auth.admin.getUserById(data.user_id);
-          
-          if (!userError && userData.user) {
-            const metaData = userData.user.user_metadata || {};
-            user = {
-              id: userData.user.id,
-              email: userData.user.email || '',
-              full_name: metaData.full_name || metaData.name || null,
-              avatar_url: metaData.avatar_url || metaData.picture || null,
-            };
-          }
-        } catch (userFetchError) {
-          console.error("Error fetching user data:", userFetchError);
-          // Continue without user data rather than failing the whole request
-        }
-      }
+      // For now, we'll skip user data fetching on the client side
+      // This should be handled by a server-side API endpoint
+      const user = null;
 
       return {
         sessionId: data.session_id,
@@ -159,7 +141,7 @@ export class WorkflowQueries {
   }
 
   /**
-   * List recent workflows with SEO metadata and user information
+   * List recent workflows with SEO metadata
    * Useful for directory page and sitemap generation
    */
   async listPublicWorkflows(
@@ -186,31 +168,14 @@ export class WorkflowQueries {
         return [];
       }
 
-      const workflows = await Promise.all(
-        data.map(async (row) => {
+      const workflows = data
+        .map((row) => {
           const state = row.state as any;
           if (!state?.seo) return null;
 
-          // Fetch user data if user_id exists
-          let user = null;
-          if (row.user_id) {
-            try {
-              const { data: userData, error: userError } = await this.supabase.auth.admin.getUserById(row.user_id);
-              
-              if (!userError && userData.user) {
-                const metaData = userData.user.user_metadata || {};
-                user = {
-                  id: userData.user.id,
-                  email: userData.user.email || '',
-                  full_name: metaData.full_name || metaData.name || null,
-                  avatar_url: metaData.avatar_url || metaData.picture || null,
-                };
-              }
-            } catch (userFetchError) {
-              console.error("Error fetching user data for workflow:", row.session_id, userFetchError);
-              // Continue without user data
-            }
-          }
+          // For now, we'll skip user data fetching on the client side
+          // This should be handled by a server-side API endpoint
+          const user = null;
 
           return {
             sessionId: row.session_id,
@@ -227,9 +192,9 @@ export class WorkflowQueries {
             user: user,
           };
         })
-      );
+        .filter(Boolean) as WorkflowBySlugResponse[];
 
-      return workflows.filter(Boolean) as WorkflowBySlugResponse[];
+      return workflows;
     } catch (error) {
       console.error("Error listing public workflows:", error);
       return [];
