@@ -48,15 +48,15 @@ const WorkflowDirectoryPage = () => {
           created_at: workflow.createdAt,
           updated_at: workflow.updatedAt,
           is_vetted: workflow.isVetted,
-          state: workflow.workflow ? {
-            phase: 'complete',
-            nodes: workflow.workflow.nodes || [],
+          state: {
+            phase: 'complete' as const,
+            nodes: workflow.workflow?.nodes || [],
             connections: [],
-            settings: workflow.workflow.settings || {},
+            settings: workflow.workflow?.settings || {},
             pendingClarifications: [],
             clarificationHistory: [],
             validations: { isValid: true }
-          } : undefined,
+          },
           seoMetadata: workflow.seo,
           user: workflow.user
         }))

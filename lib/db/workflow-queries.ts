@@ -159,8 +159,8 @@ export class WorkflowQueries {
   }
 
   /**
-   * List recent workflows with SEO metadata
-   * Useful for sitemap generation
+   * List recent workflows with SEO metadata and user information
+   * Useful for directory page and sitemap generation
    */
   async listPublicWorkflows(
     limit: number = 100
@@ -168,7 +168,14 @@ export class WorkflowQueries {
     try {
       const { data, error } = await this.supabase
         .from("workflow_sessions")
-        .select("*")
+        .select(`
+          session_id,
+          created_at,
+          updated_at,
+          state,
+          is_vetted,
+          user_id
+        `)
         .not("state->seo", "is", null)
         .eq("state->phase", "complete")
         .order("created_at", { ascending: false })
@@ -179,20 +186,50 @@ export class WorkflowQueries {
         return [];
       }
 
-      return data
-        .map((row) => {
+      const workflows = await Promise.all(
+        data.map(async (row) => {
           const state = row.state as any;
           if (!state?.seo) return null;
 
+          // Fetch user data if user_id exists
+          let user = null;
+          if (row.user_id) {
+            try {
+              const { data: userData, error: userError } = await this.supabase.auth.admin.getUserById(row.user_id);
+              
+              if (!userError && userData.user) {
+                const metaData = userData.user.user_metadata || {};
+                user = {
+                  id: userData.user.id,
+                  email: userData.user.email || '',
+                  full_name: metaData.full_name || metaData.name || null,
+                  avatar_url: metaData.avatar_url || metaData.picture || null,
+                };
+              }
+            } catch (userFetchError) {
+              console.error("Error fetching user data for workflow:", row.session_id, userFetchError);
+              // Continue without user data
+            }
+          }
+
           return {
             sessionId: row.session_id,
-            workflow: state.workflow,
+            workflow: {
+              nodes: state.workflow?.nodes || [],
+              settings: state.workflow?.settings || {},
+            },
             seo: state.seo,
+            configAnalysis: state.configAnalysis,
+            userPrompt: state.userPrompt || "",
             createdAt: row.created_at,
             updatedAt: row.updated_at,
+            isVetted: row.is_vetted || false,
+            user: user,
           };
         })
-        .filter(Boolean) as WorkflowBySlugResponse[];
+      );
+
+      return workflows.filter(Boolean) as WorkflowBySlugResponse[];
     } catch (error) {
       console.error("Error listing public workflows:", error);
       return [];
