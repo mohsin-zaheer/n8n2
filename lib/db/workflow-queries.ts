@@ -150,7 +150,7 @@ export class WorkflowQueries {
     try {
       console.log('Querying workflow_sessions table...');
       
-      // Get all active workflows (not archived)
+      // Get all workflows (remove restrictive filters)
       const { data, error } = await this.supabase
         .from("workflow_sessions")
         .select(`
@@ -160,10 +160,10 @@ export class WorkflowQueries {
           state,
           is_vetted,
           user_id,
-          user_prompt
+          user_prompt,
+          is_active,
+          archived
         `)
-        .eq("is_active", true)
-        .eq("archived", false)
         .not("state", "is", null)
         .order("created_at", { ascending: false })
         .limit(limit);
@@ -185,11 +185,23 @@ export class WorkflowQueries {
       const workflows = data
         .map((row) => {
           const state = row.state as any;
-          console.log('Processing workflow:', row.session_id, 'state keys:', Object.keys(state || {}));
+          console.log('Processing workflow:', row.session_id, {
+            stateKeys: Object.keys(state || {}),
+            isActive: row.is_active,
+            archived: row.archived,
+            hasUserPrompt: !!row.user_prompt,
+            stateType: typeof state
+          });
           
           // Accept any workflow that has state data
           if (!state) {
             console.log('Skipping workflow - no state:', row.session_id);
+            return null;
+          }
+
+          // Skip archived workflows if explicitly archived
+          if (row.archived === true) {
+            console.log('Skipping workflow - archived:', row.session_id);
             return null;
           }
 
@@ -201,7 +213,7 @@ export class WorkflowQueries {
             state.seo?.title ||
             state.workflow?.settings?.name || 
             state.settings?.name || 
-            row.user_prompt?.slice(0, 50) + '...' ||
+            (row.user_prompt && row.user_prompt.length > 50 ? row.user_prompt.slice(0, 50) + '...' : row.user_prompt) ||
             'Untitled Workflow';
 
           const workflow = {
