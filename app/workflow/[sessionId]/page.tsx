@@ -743,7 +743,7 @@ export default function WorkflowStatusPage() {
                       {currentDiscoveryIcon && (
                         <div className="w-16 h-16 transition-all duration-200 ease-in-out transform scale-100 hover:scale-110">
                           <img
-                            src={`/icons/${currentDiscoveryIcon}.svg`}
+                            src={`/demo-icons/icons/nodes/svgs/${currentDiscoveryIcon}.svg`}
                             alt={currentDiscoveryIcon}
                             className="w-full h-full object-contain filter drop-shadow-lg"
                             onError={(e) => {

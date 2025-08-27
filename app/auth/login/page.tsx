@@ -80,14 +80,14 @@ function LoginContent() {
 
   return (
     <>
-      <div className="fixed inset-0 -z-10 bg-emerald-gradient" />
+      <div className="fixed inset-0 -z-10 bg-[rgb(236,244,240)]" />
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full">
           <div className="card p-8 rounded-2xl bg-white/80 backdrop-blur-sm border border-neutral-200 shadow-lg">
             <div className="text-center">
               <div className="flex justify-center mb-4">
                 <div className="card-icon bg-[rgba(27,200,140,0.12)] text-emerald-700">
-                  <i className="fa-solid fa-lock" />
+                  <i className="fa-solid fa-lock text-[rgb(27,200,140)]" />
                 </div>
               </div>
 
@@ -105,7 +105,7 @@ function LoginContent() {
                 <Button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full btn btn-primary flex items-center justify-center gap-3"
+                  className="w-full btn bg-[rgb(27,200,140)] flex items-center justify-center gap-3"
                 >
                   {!loading && (
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
