@@ -185,7 +185,7 @@ export default function Home() {
 
   return (
     <>
-      <div className="fixed inset-0 -z-10 bg-emerald-gradient" />
+      <div className="fixed inset-0 -z-10 bg-[rgb(236,244,240)]" />
       <div className="min-h-[calc(100vh-60px)]">
         <section className="relative overflow-hidden pt-6 sm:pt-10 md:pt-14">
           <div className="max-w-screen-md mx-auto container-padding section-padding">
@@ -240,27 +240,28 @@ export default function Home() {
           </div>
           <div className="max-w-screen-md mx-auto container-padding">
             <div
-              className={`mt-6 mb-1 text-center ${PARAGRAPH_TEXT_CLASS} font-medium tracking-wide text-white/90`}
+              className={`mt-6 mb-1 text-center ${PARAGRAPH_TEXT_CLASS} font-medium tracking-wide text-neutral-700/90`}
             >
               Need an idea?{" "}
-              <span className="opacity-90">I&apos;d like to…</span>
+              <span className="opacity-90 ">I&apos;d like to…</span>
             </div>
-            <div className="my-5 flex flex-wrap justify-center gap-1 sm:gap-1.5">
-              {outcomes.map((ex) => (
-                <button
-                  key={ex.label}
-                  onClick={() => handleUseExample(ex.prompt)}
-                  onMouseEnter={() => setHoverPrompt(ex.prompt)}
-                  onMouseLeave={() => setHoverPrompt(null)}
-                  className={`inline-flex items-center gap-2 rounded-full  bg-[rgb(27,200,140)] text-white transition-all hover:bg-emerald-400 hover:-translate-y-0.5  hover:shadow-[0_4px_12px_rgba(27,200,140,0.35)] px-4 py-1.5 text-sm text-white my-0.5 font-normal`}
-                  type="button"
-                  aria-label={`Use example: ${ex.label}`}
-                >
-                  <i className="fa-solid fa-wand-magic-sparkles text-current leading-none" />
-                  <span>{ex.label}</span>
-                </button>
-              ))}
-            </div>
+           <div className="my-5 grid grid-cols-2 gap-1 mx-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-1.5">
+            {outcomes.map((ex) => (
+              <button
+                key={ex.label}
+                onClick={() => handleUseExample(ex.prompt)}
+                onMouseEnter={() => setHoverPrompt(ex.prompt)}
+                onMouseLeave={() => setHoverPrompt(null)}
+                className="inline-flex items-center gap-2 rounded-full bg-[rgb(27,200,140)] text-white transition-all hover:bg-emerald-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(27,200,140,0.35)] px-3 text-xs sm:px-4 py-2 sm:text-sm font-normal my-1"
+                type="button"
+                aria-label={`Use example: ${ex.label}`}
+              >
+                <i className="fa-solid fa-wand-magic-sparkles text-current leading-none" />
+                <span className="text-left">{ex.label}</span>
+              </button>
+            ))}
+          </div>
+
           </div>
         </section>
       </div>
