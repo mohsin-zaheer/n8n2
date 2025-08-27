@@ -25,17 +25,41 @@ export class WorkflowQueries {
    */
   async findBySlug(slug: string): Promise<WorkflowBySlugResponse | null> {
     try {
-      // Option B: Only fetch essential fields for display
+      // Fetch workflow data with user information
       type Row = {
         session_id: string;
         created_at: string;
         updated_at: string;
         state: any;
         is_vetted?: boolean;
+        user_id?: string;
+        users?: {
+          id: string;
+          email: string;
+          raw_user_meta_data?: {
+            full_name?: string;
+            avatar_url?: string;
+            name?: string;
+            picture?: string;
+          };
+        };
       };
+      
       const { data, error } = await this.supabase
         .from("workflow_sessions")
-        .select("session_id, created_at, updated_at, state, is_vetted")
+        .select(`
+          session_id, 
+          created_at, 
+          updated_at, 
+          state, 
+          is_vetted,
+          user_id,
+          users:user_id (
+            id,
+            email,
+            raw_user_meta_data
+          )
+        `)
         .eq("state->seo->>slug", slug)
         .single<Row>();
 
@@ -57,6 +81,20 @@ export class WorkflowQueries {
         return null;
       }
 
+      // Extract user information
+      let user = null;
+      if (data.users) {
+        const userData = Array.isArray(data.users) ? data.users[0] : data.users;
+        const metaData = userData.raw_user_meta_data || {};
+        
+        user = {
+          id: userData.id,
+          email: userData.email,
+          full_name: metaData.full_name || metaData.name || null,
+          avatar_url: metaData.avatar_url || metaData.picture || null,
+        };
+      }
+
       return {
         sessionId: data.session_id,
         workflow: {
@@ -69,6 +107,7 @@ export class WorkflowQueries {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         isVetted: data.is_vetted || false,
+        user: user,
       };
     } catch (error) {
       console.error("Error finding workflow by slug:", error);

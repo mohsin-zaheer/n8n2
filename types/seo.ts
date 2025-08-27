@@ -63,4 +63,10 @@ export interface WorkflowBySlugResponse {
   createdAt: string;
   updatedAt: string;
   isVetted?: boolean;
+  user?: {
+    id: string;
+    email: string;
+    full_name?: string | null;
+    avatar_url?: string | null;
+  } | null;
 }
