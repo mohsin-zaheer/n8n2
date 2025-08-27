@@ -170,7 +170,10 @@ export default function WorkflowStatusPage() {
       const pendingSessionData = localStorage.getItem("pending_workflow_session") || 
                                 sessionStorage.getItem("pending_workflow_session");
       
+      console.log('handlePendingWorkflow - pendingSessionData:', pendingSessionData);
+      
       if (!pendingSessionData) {
+        console.error("No pending session data found");
         setError("Session not found");
         setLoading(false);
         return;
@@ -179,9 +182,11 @@ export default function WorkflowStatusPage() {
       let sessionToken, tempData;
       try {
         const parsedData = JSON.parse(pendingSessionData);
+        console.log('Parsed pending session data:', parsedData);
         sessionToken = parsedData.sessionToken || pendingSessionData; // Handle both formats
         tempData = parsedData;
       } catch (e) {
+        console.log('Failed to parse as JSON, treating as raw session token');
         // If it's not JSON, treat it as the session token directly
         sessionToken = pendingSessionData;
       }
@@ -189,9 +194,11 @@ export default function WorkflowStatusPage() {
       let promptData;
       
       if (tempData && tempData.prompt && tempData.workflowSessionId) {
+        console.log('Using data from parsed session');
         // Data is already in the parsed format
         promptData = tempData;
       } else {
+        console.log('Fetching session data from Supabase with token:', sessionToken);
         // Retrieve the session data from Supabase using the token
         const { data: sessionData, error: sessionError } = await supabase
           .from("sessions")
@@ -201,7 +208,7 @@ export default function WorkflowStatusPage() {
 
         if (sessionError || !sessionData?.temp_prompt_data) {
           console.error("Failed to retrieve session:", sessionError);
-          setError("Session not found");
+          setError("Session not found in database");
           setLoading(false);
           return;
         }
@@ -210,17 +217,22 @@ export default function WorkflowStatusPage() {
           prompt: string;
           workflowSessionId: string;
         };
+        console.log('Retrieved prompt data from database:', promptData);
       }
 
       // Verify this is the correct workflow session
       if (promptData.workflowSessionId !== sessionId) {
+        console.error(`Session mismatch: expected ${sessionId}, got ${promptData.workflowSessionId}`);
         setError("Session mismatch");
         setLoading(false);
         return;
       }
 
+      console.log('Creating workflow with prompt:', promptData.prompt);
+
       // Now link the session to the authenticated user and clear temp data (if using token)
       if (sessionToken && sessionToken !== pendingSessionData) {
+        console.log('Updating session in database');
         await supabase
           .from("sessions")
           .update({
@@ -241,8 +253,12 @@ export default function WorkflowStatusPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to create workflow");
+        const errorText = await res.text();
+        console.error('Failed to create workflow:', res.status, errorText);
+        throw new Error(`Failed to create workflow: ${res.status}`);
       }
+
+      console.log('Workflow created successfully');
 
       // Clear the pending session from both storages
       localStorage.removeItem("pending_workflow_session");

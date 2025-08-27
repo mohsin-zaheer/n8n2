@@ -20,24 +20,35 @@ function LoginContent() {
       console.log('Auth state change:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        // Successfully authenticated, now check for pending workflow
-        const pendingSession = localStorage.getItem("pending_workflow_session") || 
-                              sessionStorage.getItem("pending_workflow_session");
-        
-        if (pendingSession) {
-          try {
-            const sessionData = JSON.parse(pendingSession);
-            if (sessionData.workflowSessionId) {
-              router.push(`/workflow/${sessionData.workflowSessionId}`);
-              return;
+        // Add a small delay to ensure localStorage is available after OAuth redirect
+        setTimeout(() => {
+          // Successfully authenticated, now check for pending workflow
+          const pendingSession = localStorage.getItem("pending_workflow_session") || 
+                                sessionStorage.getItem("pending_workflow_session");
+          
+          console.log('Pending session data:', pendingSession);
+          
+          if (pendingSession) {
+            try {
+              const sessionData = JSON.parse(pendingSession);
+              console.log('Parsed session data:', sessionData);
+              
+              if (sessionData.workflowSessionId) {
+                console.log('Redirecting to workflow:', sessionData.workflowSessionId);
+                router.push(`/workflow/${sessionData.workflowSessionId}`);
+                return;
+              }
+            } catch (e) {
+              console.error("Error parsing pending session:", e);
+              // If parsing fails, treat the whole string as session token
+              console.log('Treating as raw session token, redirecting to returnUrl');
             }
-          } catch (e) {
-            console.error("Error parsing pending session:", e);
           }
-        }
-        
-        // Otherwise redirect to the return URL
-        router.push(returnUrl);
+          
+          // Otherwise redirect to the return URL
+          console.log('No pending session, redirecting to:', returnUrl);
+          router.push(returnUrl);
+        }, 100);
         return;
       }
       
@@ -56,10 +67,13 @@ function LoginContent() {
           const pendingSession = localStorage.getItem("pending_workflow_session") || 
                                 sessionStorage.getItem("pending_workflow_session");
           
+          console.log('Current auth check - pending session:', pendingSession);
+          
           if (pendingSession) {
             try {
               const sessionData = JSON.parse(pendingSession);
               if (sessionData.workflowSessionId) {
+                console.log('Already authenticated, redirecting to workflow:', sessionData.workflowSessionId);
                 router.push(`/workflow/${sessionData.workflowSessionId}`);
                 return;
               }
@@ -69,6 +83,7 @@ function LoginContent() {
           }
           
           // Otherwise redirect to the return URL
+          console.log('Already authenticated, redirecting to:', returnUrl);
           router.push(returnUrl);
         } else {
           setCheckingSession(false);
