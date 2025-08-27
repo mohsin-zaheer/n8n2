@@ -31,11 +31,132 @@ const WorkflowDirectoryPage = () => {
     const loadWorkflows = async () => {
       try {
         setLoading(true)
-        const workflowQueries = new WorkflowQueries()
-        // Note: We'll need to add a method to get all workflows
-        // For now, this is a placeholder structure
-        const results: WorkflowSearchResult[] = []
-        setWorkflows(results)
+        
+        // For now, let's add some mock data to test the UI
+        // In production, this would fetch from the database
+        const mockWorkflows: WorkflowSearchResult[] = [
+          {
+            session_id: 'wf_001',
+            created_by: 'John Doe',
+            updated_at: new Date().toISOString(),
+            is_vetted: true,
+            state: {
+              phase: 'complete',
+              nodes: [
+                { id: '1', name: 'Gmail Trigger', type: 'gmail', purpose: 'Monitor emails', position: [0, 0], parameters: {}, isSelected: true },
+                { id: '2', name: 'Slack Message', type: 'slack', purpose: 'Send notifications', position: [200, 0], parameters: {}, isSelected: true },
+                { id: '3', name: 'Google Sheets', type: 'googleSheets', purpose: 'Log data', position: [400, 0], parameters: {}, isSelected: true }
+              ],
+              connections: [],
+              settings: { name: 'Email to Slack Notifications' },
+              pendingClarifications: [],
+              clarificationHistory: [],
+              validations: { isValid: true }
+            },
+            seoMetadata: {
+              slug: 'email-slack-notifications',
+              title: 'Email to Slack Notifications Workflow',
+              description: 'Automatically forward important emails to Slack channels for team visibility',
+              keywords: ['email', 'slack', 'notifications', 'gmail', 'automation'],
+              businessValue: 'Team Communication',
+              category: 'Communication',
+              integrations: ['Gmail', 'Slack'],
+              generatedAt: new Date().toISOString()
+            }
+          },
+          {
+            session_id: 'wf_002',
+            created_by: 'Jane Smith',
+            updated_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+            is_vetted: false,
+            state: {
+              phase: 'complete',
+              nodes: [
+                { id: '1', name: 'LinkedIn Scraper', type: 'linkedin', purpose: 'Find leads', position: [0, 0], parameters: {}, isSelected: true },
+                { id: '2', name: 'OpenAI GPT', type: 'openAi', purpose: 'Generate messages', position: [200, 0], parameters: {}, isSelected: true },
+                { id: '3', name: 'Gmail Send', type: 'gmail', purpose: 'Send emails', position: [400, 0], parameters: {}, isSelected: true },
+                { id: '4', name: 'Google Sheets', type: 'googleSheets', purpose: 'Track responses', position: [600, 0], parameters: {}, isSelected: true }
+              ],
+              connections: [],
+              settings: { name: 'LinkedIn Lead Generation' },
+              pendingClarifications: [],
+              clarificationHistory: [],
+              validations: { isValid: true }
+            },
+            seoMetadata: {
+              slug: 'linkedin-lead-generation',
+              title: 'LinkedIn Lead Generation Workflow',
+              description: 'Automatically find LinkedIn prospects and send personalized outreach emails',
+              keywords: ['linkedin', 'leadgen', 'sales', 'outreach', 'automation', 'prospecting'],
+              businessValue: 'Sales Growth',
+              category: 'Sales',
+              integrations: ['LinkedIn', 'OpenAI', 'Gmail', 'Google Sheets'],
+              generatedAt: new Date().toISOString()
+            }
+          },
+          {
+            session_id: 'wf_003',
+            created_by: 'Mike Johnson',
+            updated_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+            is_vetted: true,
+            state: {
+              phase: 'complete',
+              nodes: [
+                { id: '1', name: 'Webhook Trigger', type: 'webhook', purpose: 'Receive invoice data', position: [0, 0], parameters: {}, isSelected: true },
+                { id: '2', name: 'PDF Generator', type: 'pdf', purpose: 'Create invoice', position: [200, 0], parameters: {}, isSelected: true },
+                { id: '3', name: 'Gmail Send', type: 'gmail', purpose: 'Email invoice', position: [400, 0], parameters: {}, isSelected: true },
+                { id: '4', name: 'QuickBooks', type: 'quickbooks', purpose: 'Record transaction', position: [600, 0], parameters: {}, isSelected: true }
+              ],
+              connections: [],
+              settings: { name: 'Automated Invoice Processing' },
+              pendingClarifications: [],
+              clarificationHistory: [],
+              validations: { isValid: true }
+            },
+            seoMetadata: {
+              slug: 'automated-invoice-processing',
+              title: 'Automated Invoice Processing Workflow',
+              description: 'Generate, send, and track invoices automatically with QuickBooks integration',
+              keywords: ['invoice', 'billing', 'quickbooks', 'automation', 'accounting'],
+              businessValue: 'Process Efficiency',
+              category: 'Automation',
+              integrations: ['Webhook', 'PDF', 'Gmail', 'QuickBooks'],
+              generatedAt: new Date().toISOString()
+            }
+          },
+          {
+            session_id: 'wf_004',
+            created_by: 'Sarah Wilson',
+            updated_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+            is_vetted: true,
+            state: {
+              phase: 'complete',
+              nodes: [
+                { id: '1', name: 'Google Analytics', type: 'googleAnalytics', purpose: 'Fetch metrics', position: [0, 0], parameters: {}, isSelected: true },
+                { id: '2', name: 'Data Transform', type: 'transform', purpose: 'Process data', position: [200, 0], parameters: {}, isSelected: true },
+                { id: '3', name: 'Notion Database', type: 'notion', purpose: 'Store reports', position: [400, 0], parameters: {}, isSelected: true },
+                { id: '4', name: 'Slack Notification', type: 'slack', purpose: 'Alert team', position: [600, 0], parameters: {}, isSelected: true }
+              ],
+              connections: [],
+              settings: { name: 'Weekly Analytics Report' },
+              pendingClarifications: [],
+              clarificationHistory: [],
+              validations: { isValid: true }
+            },
+            seoMetadata: {
+              slug: 'weekly-analytics-report',
+              title: 'Weekly Analytics Report Workflow',
+              description: 'Automatically generate and distribute weekly analytics reports to your team',
+              keywords: ['analytics', 'reporting', 'google analytics', 'notion', 'automation'],
+              businessValue: 'Data Insights',
+              category: 'Analytics',
+              integrations: ['Google Analytics', 'Notion', 'Slack'],
+              generatedAt: new Date().toISOString()
+            }
+          }
+        ]
+        
+        setWorkflows(mockWorkflows)
       } catch (error) {
         console.error('Failed to load workflows:', error)
       } finally {
