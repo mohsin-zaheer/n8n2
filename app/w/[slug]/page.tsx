@@ -40,7 +40,6 @@ export async function generateMetadata({
     category: seo.category,
     classification: 'Automation Workflow',
     robots: 'index, follow',
-    canonical: canonicalUrl,
     alternates: {
       canonical: canonicalUrl,
     },
