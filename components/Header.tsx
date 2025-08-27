@@ -123,7 +123,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               <ul className="py-2">
                 <li>
                   <Link
-                    href="/leadgen"
+                    href="/directory?search=leadgen"
                     role="menuitem"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem"
                   >
@@ -133,7 +133,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                 </li>
                 <li>
                   <Link
-                    href="/linkedin-voice"
+                    href="/directory?search=linkedin"
                     role="menuitem"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem2"
                   >
@@ -143,7 +143,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                 </li>
                 <li>
                   <Link
-                    href="/seo-aeo"
+                    href="/directory?search=seo"
                     role="menuitem"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem3"
                   >
@@ -153,7 +153,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                 </li>
                 <li>
                   <Link
-                    href="/more"
+                    href="/directory"
                     role="menuitem"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem4"
                   >
@@ -255,7 +255,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               <ul className="min-h-0 overflow-hidden rounded-lg border dark:border-neutral-800 bg-white/95 dark:bg-neutral-900">
                 <li>
                   <Link
-                    href="/leadgen"
+                    href="/directory?search=leadgen"
                     onClick={closeMobile}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem"
                   >
@@ -265,7 +265,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                 </li>
                 <li>
                   <Link
-                    href="/linkedin-voice"
+                    href="/directory?search=linkedin"
                     onClick={closeMobile}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem1"
                   >
@@ -275,7 +275,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                 </li>
                 <li>
                   <Link
-                    href="/seo-aeo"
+                    href="/directory?search=seo"
                     onClick={closeMobile}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem2"
                   >
@@ -285,7 +285,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                 </li>
                 <li>
                   <Link
-                    href="/more"
+                    href="/directory"
                     onClick={closeMobile}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem3"
                   >

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Search, Filter, X, Clock, Users, Zap, User } from 'lucide-react'
 import { WorkflowQueries } from '@/lib/db/workflow-queries'
 import { WorkflowState } from '@/lib/db/types'
@@ -26,6 +27,7 @@ interface WorkflowSearchResult {
 }
 
 const WorkflowDirectoryPage = () => {
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [workflows, setWorkflows] = useState<WorkflowSearchResult[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,6 +35,20 @@ const WorkflowDirectoryPage = () => {
   const [sortBy, setSortBy] = useState<'relevance' | 'recent' | 'popular'>('relevance')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  // Initialize filters from URL parameters
+  useEffect(() => {
+    const categoryParam = searchParams.get('category')
+    const searchParam = searchParams.get('search')
+    
+    if (categoryParam) {
+      setSelectedCategory(categoryParam)
+    }
+    
+    if (searchParam) {
+      setSearchQuery(searchParam)
+    }
+  }, [searchParams])
 
   // Load workflows on component mount
   useEffect(() => {
@@ -175,7 +191,8 @@ const WorkflowDirectoryPage = () => {
     'DevOps',
     'Sales',
     'Marketing',
-    'Monitoring'
+    'Monitoring',
+    'Lead Generation'
   ]
 
   return (
