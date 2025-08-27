@@ -97,7 +97,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
           {/* Directory dropdown */}
           <div className="relative inline-block group">
             <Link
-              href="/"
+              href="/directory"
               className={cn(
                 "flex items-center gap-2 px-3 py-1 border rounded-md font-semibold transition-all hover:opacity-80",
                 isScrolled || computedVariant === "default"
