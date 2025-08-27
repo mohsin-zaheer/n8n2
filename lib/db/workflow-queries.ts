@@ -1,7 +1,6 @@
 // lib/db/workflow-queries.ts
 
 import { createClient } from "@supabase/supabase-js";
-import { getEnv } from "@/lib/config/env";
 import { WorkflowBySlugResponse } from "@/types/seo";
 
 /**
@@ -11,11 +10,15 @@ export class WorkflowQueries {
   private supabase;
 
   constructor() {
-    const env = getEnv();
-    this.supabase = createClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
-      env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    // Use environment variables directly for client-side usage
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    }
+    
+    this.supabase = createClient(supabaseUrl, supabaseAnonKey);
   }
 
   /**
