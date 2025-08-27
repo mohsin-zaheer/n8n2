@@ -20,15 +20,71 @@ export async function generateMetadata({
 
   if (!workflow?.seo) {
     return {
-      title: "Workflow Not Found",
+      title: "Workflow Not Found | n8n Growth Agents",
       description: "The requested workflow could not be found.",
+      robots: "noindex, nofollow",
     };
   }
 
+  const seo = workflow.seo;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://n8n-growth-agents.com';
+  const canonicalUrl = `${baseUrl}/w/${params.slug}`;
+
   return {
-    title: workflow.seo.title,
-    description: workflow.seo.description,
-    keywords: workflow.seo.keywords,
+    title: `${seo.title} | n8n Growth Agents`,
+    description: seo.description,
+    keywords: seo.keywords?.join(', '),
+    authors: [{ name: 'n8n Growth Agents' }],
+    creator: 'n8n Growth Agents',
+    publisher: 'n8n Growth Agents',
+    category: seo.category,
+    classification: 'Automation Workflow',
+    robots: 'index, follow',
+    canonical: canonicalUrl,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: seo.title,
+      description: seo.description,
+      url: canonicalUrl,
+      siteName: 'n8n Growth Agents',
+      type: 'article',
+      publishedTime: workflow.createdAt,
+      modifiedTime: workflow.updatedAt,
+      tags: seo.keywords,
+      images: seo.ogImage ? [
+        {
+          url: seo.ogImage,
+          width: 1200,
+          height: 630,
+          alt: seo.title,
+        }
+      ] : [
+        {
+          url: `${baseUrl}/og-default.png`,
+          width: 1200,
+          height: 630,
+          alt: seo.title,
+        }
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: seo.title,
+      description: seo.description,
+      images: seo.ogImage ? [seo.ogImage] : [`${baseUrl}/og-default.png`],
+      creator: '@n8nGrowthAgents',
+      site: '@n8nGrowthAgents',
+    },
+    other: {
+      'article:author': workflow.user?.full_name || 'n8n Growth Agents',
+      'article:section': seo.category,
+      'article:tag': seo.keywords?.join(', '),
+      'workflow:nodes': workflow.workflow?.nodes?.length?.toString() || '0',
+      'workflow:integrations': seo.integrations?.join(', ') || '',
+      'workflow:business-value': seo.businessValue || '',
+    },
   };
 }
 
