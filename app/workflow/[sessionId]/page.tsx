@@ -781,7 +781,7 @@ export default function WorkflowStatusPage() {
                           }}
                         >
                           <img
-                            src={`/icons/${iconName}.svg`}
+                            src={`/demo-icons/icons/nodes/svgs/${iconName}.svg`}
                             alt={iconName}
                             className="w-full h-full object-contain"
                             onError={(e) => {
@@ -813,9 +813,9 @@ export default function WorkflowStatusPage() {
                   {/* Enhanced animated progress indicator */}
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-[rgb(236,244,240)] rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-[rgb(236,244,240)] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-[rgb(236,244,240)] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                     <span className="text-xs text-neutral-500 ml-2">Finding the best nodes...</span>
                   </div>

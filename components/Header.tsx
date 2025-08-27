@@ -64,8 +64,8 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
   }, []);
 
   const base = "sticky top-0 z-40 transition-colors ";
-  const landingTop = "bg-transparent text-white";
-  const defaultTop = "bg-white text-neutral-900 border-b border-neutral-200";
+  const landingTop = "bg-transparent";
+  const defaultTop = "bg-transparent text-neutral-900 ";
   const scrolled = "bg-white text-neutral-900 border-b border-neutral-200";
 
   const headerClass = cn(
@@ -99,10 +99,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
             <Link
               href="/directory"
               className={cn(
-                "flex items-center gap-2 px-3 py-1 border rounded-md font-semibold transition-all hover:opacity-80",
-                isScrolled || computedVariant === "default"
-                  ? "border-neutral-900"
-                  : "border-white"
+                "flex items-center gap-2 px-3 py-1 border rounded-md font-semibold transition-all hover:opacity-80 border-neutral-900"
               )}
               aria-haspopup="menu"
             >
@@ -177,10 +174,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               <Button
                 onClick={handleLogin}
                 className={cn(
-                  "border-0 shadow-sm font-semibold transition-all",
-                  isScrolled || computedVariant === "default"
-                    ? "bg-neutral-900 hover:bg-neutral-800 text-white"
-                    : "bg-white hover:bg-white/90 text-emerald-500"
+                  "border-0 shadow-sm font-semibold transition-all bg-neutral-900 hover:bg-neutral-800 text-white"
                 )}
                 size="sm"
               >
@@ -309,11 +303,11 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               <div className="w-9 h-9 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-3">
-                <UserAvatar user={user} />
-                <div className="text-sm">
+                <div className="text-sm text-end">
                   <div className="font-semibold">{user.email}</div>
                   <div className="text-neutral-500 dark:text-neutral-400">Signed in</div>
                 </div>
+                <UserAvatar user={user} />
               </div>
             ) : (
               <Button

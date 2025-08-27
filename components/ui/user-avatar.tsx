@@ -58,9 +58,13 @@ export function UserAvatar({ user }: UserAvatarProps) {
       </button>
       
       {isOpen && (
-        <div className={`absolute top-full mt-2 w-56 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-800 z-50 ${
-          dropdownPosition === 'left' ? 'left-0' : 'right-0'
-        }`}>
+        <div
+          className={`absolute w-56 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-800 z-50
+            right-0
+            bottom-full mb-2
+            sm:bottom-auto sm:top-full sm:mt-2
+            sm:${dropdownPosition === 'left' ? 'left-0' : 'right-0'}`}
+        >
           <div className="p-3 border-b border-neutral-100 dark:border-neutral-800">
             <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate">
               {user.user_metadata?.full_name || 'User'}
@@ -69,7 +73,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
               {user.email}
             </p>
           </div>
-          
+
           <div className="p-1">
             <form action="/api/auth/logout" method="POST">
               <button 
@@ -87,6 +91,9 @@ export function UserAvatar({ user }: UserAvatarProps) {
           </div>
         </div>
       )}
+
+
+
     </div>
   );
 }
