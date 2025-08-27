@@ -79,9 +79,19 @@ export class WorkflowQueries {
         return null;
       }
 
-      // For now, we'll skip user data fetching on the client side
-      // This should be handled by a server-side API endpoint
-      const user = null;
+      // Fetch user data if user_id exists
+      let user = null;
+      if (data.user_id) {
+        try {
+          const response = await fetch(`/api/users/${data.user_id}`);
+          if (response.ok) {
+            user = await response.json();
+          }
+        } catch (userFetchError) {
+          console.error("Error fetching user data:", userFetchError);
+          // Continue without user data rather than failing the whole request
+        }
+      }
 
       return {
         sessionId: data.session_id,
@@ -208,8 +218,19 @@ export class WorkflowQueries {
             return null;
           }
 
-          // For now, we'll skip user data fetching on the client side
-          const user = null;
+          // Fetch user data if user_id exists
+          let user = null;
+          if (row.user_id) {
+            try {
+              const response = await fetch(`/api/users/${row.user_id}`);
+              if (response.ok) {
+                user = await response.json();
+              }
+            } catch (userFetchError) {
+              console.error("Error fetching user data for workflow:", row.session_id, userFetchError);
+              // Continue without user data
+            }
+          }
 
           // Extract workflow name from various possible locations
           const workflowName = 
