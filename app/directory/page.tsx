@@ -375,12 +375,26 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
   const user = workflow.user ? {
     name: workflow.user.full_name || workflow.user.email,
     avatar: workflow.user.avatar_url,
-    initials: (workflow.user.full_name || workflow.user.email || 'AU')
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+    initials: (() => {
+      const fullName = workflow.user.full_name;
+      const email = workflow.user.email;
+      
+      if (fullName) {
+        // If full name exists, get first letter of first two words
+        const words = fullName.trim().split(/\s+/);
+        if (words.length >= 2) {
+          return (words[0][0] + words[1][0]).toUpperCase();
+        } else {
+          return words[0].slice(0, 2).toUpperCase();
+        }
+      } else if (email) {
+        // If only email, get first 2 characters before @
+        const emailPrefix = email.split('@')[0];
+        return emailPrefix.slice(0, 2).toUpperCase();
+      }
+      
+      return 'AU';
+    })()
   } : {
     name: 'Anonymous User',
     avatar: null,
