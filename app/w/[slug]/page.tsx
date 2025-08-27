@@ -2,6 +2,7 @@
 
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { getWorkflowQueries } from "@/lib/db/workflow-queries";
 import { Button } from "@/components/ui/button";
 import { NodeIcon } from "@/components/ui/node-icon";
@@ -336,9 +337,11 @@ export default async function WorkflowPublicPage({
                     <dt className="text-neutral-500">Created by</dt>
                     <dd className="flex items-center gap-2">
                       {workflowData.user.avatar_url ? (
-                        <img 
+                        <Image 
                           src={workflowData.user.avatar_url} 
                           alt={workflowData.user.full_name || workflowData.user.email}
+                          width={24}
+                          height={24}
                           className="w-6 h-6 rounded-full object-cover"
                         />
                       ) : (

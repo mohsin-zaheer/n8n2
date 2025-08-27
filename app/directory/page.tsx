@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { Search, Filter, X, Clock, Users, Zap, User } from 'lucide-react'
 import { WorkflowQueries } from '@/lib/db/workflow-queries'
 import { WorkflowState } from '@/lib/db/types'
@@ -26,7 +27,7 @@ interface WorkflowSearchResult {
   } | null;
 }
 
-const WorkflowDirectoryPage = () => {
+const WorkflowDirectoryContent = () => {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [workflows, setWorkflows] = useState<WorkflowSearchResult[]>([])
@@ -449,9 +450,11 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="flex-shrink-0">
             {user.avatar ? (
-              <img 
+              <Image 
                 src={user.avatar} 
                 alt={user.name}
+                width={32}
+                height={32}
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
               />
             ) : (
@@ -548,6 +551,21 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         )}
       </div>
     </div>
+  )
+}
+
+const WorkflowDirectoryPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[rgb(236,244,240)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading workflow directory...</p>
+        </div>
+      </div>
+    }>
+      <WorkflowDirectoryContent />
+    </Suspense>
   )
 }
 
