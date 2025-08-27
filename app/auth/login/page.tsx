@@ -17,6 +17,45 @@ function LoginContent() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Handle OAuth callback if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (code) {
+          // This is an OAuth callback, let Supabase handle it
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (error) {
+            console.error("OAuth callback error:", error);
+            setError("Authentication failed. Please try again.");
+            setCheckingSession(false);
+            return;
+          }
+          
+          if (data.user) {
+            // Successfully authenticated, now check for pending workflow
+            const pendingSession = localStorage.getItem("pending_workflow_session") || 
+                                  sessionStorage.getItem("pending_workflow_session");
+            
+            if (pendingSession) {
+              try {
+                const sessionData = JSON.parse(pendingSession);
+                if (sessionData.workflowSessionId) {
+                  router.push(`/workflow/${sessionData.workflowSessionId}`);
+                  return;
+                }
+              } catch (e) {
+                console.error("Error parsing pending session:", e);
+              }
+            }
+            
+            // Otherwise redirect to the return URL
+            router.push(returnUrl);
+            return;
+          }
+        }
+
+        // No OAuth callback, check if already authenticated
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
@@ -25,12 +64,14 @@ function LoginContent() {
                                 sessionStorage.getItem("pending_workflow_session");
           
           if (pendingSession) {
-            // If there's a pending session, redirect to the workflow page
-            // The workflow page will handle creating the workflow from the pending session
-            const sessionData = JSON.parse(pendingSession);
-            if (sessionData.workflowSessionId) {
-              router.push(`/workflow/${sessionData.workflowSessionId}`);
-              return;
+            try {
+              const sessionData = JSON.parse(pendingSession);
+              if (sessionData.workflowSessionId) {
+                router.push(`/workflow/${sessionData.workflowSessionId}`);
+                return;
+              }
+            } catch (e) {
+              console.error("Error parsing pending session:", e);
             }
           }
           
@@ -39,6 +80,7 @@ function LoginContent() {
         }
       } catch (error) {
         console.error("Error checking auth:", error);
+        setError("Authentication error. Please try again.");
       } finally {
         setCheckingSession(false);
       }
