@@ -1,7 +1,6 @@
 // lib/supabase.ts
 
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { getClientEnv } from './config/env';
 
 // Type for our database - will be generated later with Supabase CLI
@@ -25,6 +24,8 @@ export function createClient() {
  * Handles cookie management for authentication
  */
 export async function createServerClientInstance() {
+  // Dynamically import cookies to avoid issues with client-side imports
+  const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
   const env = getClientEnv();
 
