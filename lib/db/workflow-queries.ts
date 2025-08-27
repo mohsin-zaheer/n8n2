@@ -83,9 +83,28 @@ export class WorkflowQueries {
       let user = null;
       if (data.user_id) {
         try {
-          const response = await fetch(`/api/users/${data.user_id}`);
-          if (response.ok) {
-            user = await response.json();
+          // Check if we're in a server environment
+          if (typeof window === 'undefined') {
+            // Server-side: use service client directly
+            const { createServiceClient } = await import('@/lib/supabase');
+            const serviceSupabase = createServiceClient();
+            const { data: userData, error: userError } = await serviceSupabase.auth.admin.getUserById(data.user_id);
+            
+            if (!userError && userData.user) {
+              const metaData = userData.user.user_metadata || {};
+              user = {
+                id: userData.user.id,
+                email: userData.user.email,
+                full_name: metaData.full_name || metaData.name || null,
+                avatar_url: metaData.avatar_url || metaData.picture || null,
+              };
+            }
+          } else {
+            // Client-side: use API endpoint
+            const response = await fetch(`/api/users/${data.user_id}`);
+            if (response.ok) {
+              user = await response.json();
+            }
           }
         } catch (userFetchError) {
           console.error("Error fetching user data:", userFetchError);
@@ -223,9 +242,28 @@ export class WorkflowQueries {
             let user = null;
             if (row.user_id) {
               try {
-                const response = await fetch(`/api/users/${row.user_id}`);
-                if (response.ok) {
-                  user = await response.json();
+                // Check if we're in a server environment
+                if (typeof window === 'undefined') {
+                  // Server-side: use service client directly
+                  const { createServiceClient } = await import('@/lib/supabase');
+                  const serviceSupabase = createServiceClient();
+                  const { data: userData, error: userError } = await serviceSupabase.auth.admin.getUserById(row.user_id);
+                  
+                  if (!userError && userData.user) {
+                    const metaData = userData.user.user_metadata || {};
+                    user = {
+                      id: userData.user.id,
+                      email: userData.user.email,
+                      full_name: metaData.full_name || metaData.name || null,
+                      avatar_url: metaData.avatar_url || metaData.picture || null,
+                    };
+                  }
+                } else {
+                  // Client-side: use API endpoint
+                  const response = await fetch(`/api/users/${row.user_id}`);
+                  if (response.ok) {
+                    user = await response.json();
+                  }
                 }
               } catch (userFetchError) {
                 console.error("Error fetching user data for workflow:", row.session_id, userFetchError);
