@@ -83,6 +83,9 @@ export default function WorkflowStatusPage() {
   const [polishedIds, setPolishedIds] = useState<Set<string>>(new Set());
   const seoSlugRef = useRef<string | null>(null);
   const revealLockedRef = useRef<boolean>(false);
+  const [discoveryIcons, setDiscoveryIcons] = useState<string[]>([]);
+  const [currentDiscoveryIcon, setCurrentDiscoveryIcon] = useState<string>("");
+  const discoveryIconTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -118,6 +121,15 @@ export default function WorkflowStatusPage() {
       }
 
       const data = await response.json();
+
+      // Debug logging for phase transitions
+      if (data.phase !== phase) {
+        console.log(`Phase transition: ${phase} -> ${data.phase}`, {
+          selectedNodes: data.selectedNodes?.length || 0,
+          complete: data.complete,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       setPhase(data.phase);
       setComplete(data.complete);
@@ -245,6 +257,64 @@ export default function WorkflowStatusPage() {
 
     return () => clearInterval(interval);
   }, [sessionId, complete, fetchStatus]);
+
+  // Load discovery icons on mount
+  useEffect(() => {
+    const loadDiscoveryIcons = async () => {
+      try {
+        const response = await fetch('/api/icons/manifest');
+        if (response.ok) {
+          const manifest = await response.json();
+          const iconNames = manifest.icons?.map((icon: any) => icon.name) || [];
+          setDiscoveryIcons(iconNames);
+          if (iconNames.length > 0) {
+            setCurrentDiscoveryIcon(iconNames[Math.floor(Math.random() * iconNames.length)]);
+          }
+        } else {
+          // Fallback to common icon names if manifest fails
+          const fallbackIcons = [
+            'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
+            'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split',
+            'openAi', 'anthropic', 'airtable', 'github', 'trello', 'asana'
+          ];
+          setDiscoveryIcons(fallbackIcons);
+          setCurrentDiscoveryIcon(fallbackIcons[Math.floor(Math.random() * fallbackIcons.length)]);
+        }
+      } catch (error) {
+        console.error('Failed to load discovery icons:', error);
+        // Use fallback icons
+        const fallbackIcons = [
+          'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
+          'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split'
+        ];
+        setDiscoveryIcons(fallbackIcons);
+        setCurrentDiscoveryIcon(fallbackIcons[0]);
+      }
+    };
+
+    loadDiscoveryIcons();
+  }, []);
+
+  // Rotate discovery icons during discovery phase
+  useEffect(() => {
+    if (discoveryIconTimerRef.current) {
+      clearInterval(discoveryIconTimerRef.current);
+      discoveryIconTimerRef.current = null;
+    }
+
+    if (phase === "discovery" && discoveryIcons.length > 0 && visibleCount === 0) {
+      discoveryIconTimerRef.current = setInterval(() => {
+        setCurrentDiscoveryIcon(discoveryIcons[Math.floor(Math.random() * discoveryIcons.length)]);
+      }, 800); // Change icon every 800ms for engaging feel
+    }
+
+    return () => {
+      if (discoveryIconTimerRef.current) {
+        clearInterval(discoveryIconTimerRef.current);
+        discoveryIconTimerRef.current = null;
+      }
+    };
+  }, [phase, discoveryIcons, visibleCount]);
 
   // Stage node reveal for discovery-like feel (with initial delay)
   useEffect(() => {
@@ -652,12 +722,46 @@ export default function WorkflowStatusPage() {
 
             {/* Discovery preloader */}
             {phase === "discovery" && visibleCount === 0 && (
-              <div className="mb-6 flex min-h-[160px] items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
-                  <span className="text-sm text-neutral-500">
-                    Analyzing intent...
-                  </span>
+              <div className="mb-6 flex min-h-[200px] items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative">
+                    {/* Rotating background circle */}
+                    <div className="absolute inset-0 w-20 h-20 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+                    
+                    {/* Dynamic icon in center */}
+                    <div className="w-20 h-20 flex items-center justify-center">
+                      {currentDiscoveryIcon && (
+                        <div className="w-10 h-10 transition-all duration-300 ease-in-out transform hover:scale-110">
+                          <img
+                            src={`/icons/${currentDiscoveryIcon}.svg`}
+                            alt={currentDiscoveryIcon}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              // Fallback to a simple div if icon fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-1">
+                      Discovering your workflow
+                    </h3>
+                    <p className="text-sm text-neutral-600 max-w-sm">
+                      Hang on while our AI gets to work analyzing your requirements and finding the perfect nodes
+                    </p>
+                  </div>
+                  
+                  {/* Animated dots */}
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
                 </div>
               </div>
             )}
