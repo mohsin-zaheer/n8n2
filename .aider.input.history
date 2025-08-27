@@ -70,3 +70,42 @@
 
 # 2025-08-21 11:54:38.153000
 +A
+
+# 2025-08-26 02:58:47.852226
++y
+
+# 2025-08-26 03:00:24.125230
++I want to deploy the smithery.ai mcp on my ubuntu vps and then use it in my app can you update my DEPLOYMENT_GUIDE.txt by the addition of mcp deployment step by step guide MCP_SERVER_URL=https://server.smithery.ai/@vincentmcleese/n8n-mcp/mcp
++MCP_API_KEY=28d8026f-fad7-4bc6-87c5-9fcacba57fde
++MCP_PROFILE=intermediate-cuckoo-DIapDk
+
+# 2025-08-26 03:00:26.075037
++y
+
+# 2025-08-26 03:00:29.739478
++n
+
+# 2025-08-26 03:02:36.229813
++but i want to deploy it on my vps for faster response and you can use docker for that
+
+# 2025-08-26 03:04:06.149420
++y
+
+# 2025-08-26 03:05:58.829416
++A
+
+# 2025-08-26 03:07:30.031106
++y
+
+# 2025-08-26 03:08:28.067897
++S
+
+# 2025-08-27 12:32:02.753072
++app\workflow\[sessionId]\page.tsx During discovery phase I want A more engaging loading component in the discovery phase. We could do something with all the node icons we have stored in public? Like a new random icon very frequently. And we need a clear message to the user Discovering your workflow. Hang on while our AI gets to work
++Ensure the flow is working well i feel like sometimes its jumping from discovery straight to configuration? Could be the apps orchestrator that has a bug?
+
+# 2025-08-27 12:32:04.589795
++Y
+
+# 2025-08-27 16:20:56.837857
++/drop app\workflow\[sessionId]\page.tsx

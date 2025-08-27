@@ -3,19 +3,9 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/Header";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
 
 export const metadata: Metadata = {
-  title: "n8nBuilder.ghostteam.ai",
+  title: "n8n Growth Agents",
   description: "AI-assisted n8n workflow builder by Ghost Team",
 };
 
@@ -33,7 +23,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
+        className={`antialiased overflow-x-hidden`}
       >
         <div className="min-h-screen">
           <Header />

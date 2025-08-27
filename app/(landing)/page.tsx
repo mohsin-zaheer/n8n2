@@ -189,9 +189,9 @@ export default function Home() {
       <div className="min-h-[calc(100vh-60px)]">
         <section className="relative overflow-hidden pt-6 sm:pt-10 md:pt-14">
           <div className="max-w-screen-md mx-auto container-padding section-padding">
-            <div className="card text-center p-8 sm:p-10 rounded-none sm:rounded-2xl bg-white/60 border border-neutral-200 shadow-sm">
+            <div className="card text-center p-8 sm:p-10 border-none bg-transparent">
               <div className="flex justify-center">
-                <div className="card-icon bg-[rgba(27,200,140,0.12)] text-emerald-700">
+                <div className="card-icon bg-[rgba(27, 200, 139, 1)] text-emerald-700">
                   <i className="fa-solid fa-rocket" />
                 </div>
               </div>
@@ -206,7 +206,7 @@ export default function Home() {
               <div className="mt-6 text-left">
                 <div
                   ref={inputWrapperRef}
-                  className="group relative rounded-2xl border border-neutral-200 bg-white/80 backdrop-blur-sm shadow-sm transition-spring ring-0 focus-within:ring-1 focus-within:ring-neutral-300"
+                  className="group relative rounded-xl border border-neutral-200 bg-white/80 backdrop-blur-sm shadow-sm transition-spring ring-0 focus-within:ring-1 focus-within:ring-neutral-300"
                 >
                   <Textarea
                     placeholder="e.g., Send a Slack message when a new GitHub issue is created"
@@ -218,7 +218,7 @@ export default function Home() {
                 </div>
                 <div className="mt-4 flex justify-center">
                   <Button
-                    className="btn btn-primary"
+                    className="inline-flex items-center justify-center rounded-lg font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer px-4 py-2 text-sm gap-2  bg-[rgb(27,200,140)] text-white border-white hover:bg-emerald-400 focus:ring-white"
                     onClick={onSubmit}
                     disabled={disabled || checkingAuth}
                   >
@@ -245,14 +245,14 @@ export default function Home() {
               Need an idea?{" "}
               <span className="opacity-90">I&apos;d like to…</span>
             </div>
-            <div className="mt-2 flex flex-wrap justify-center gap-1 sm:gap-1.5">
+            <div className="my-5 flex flex-wrap justify-center gap-1 sm:gap-1.5">
               {outcomes.map((ex) => (
                 <button
                   key={ex.label}
                   onClick={() => handleUseExample(ex.prompt)}
                   onMouseEnter={() => setHoverPrompt(ex.prompt)}
                   onMouseLeave={() => setHoverPrompt(null)}
-                  className={`inline-flex items-center gap-1 rounded-full border border-emerald-500 bg-emerald-500 text-white transition-all hover:bg-emerald-400 hover:-translate-y-0.5 shadow-[0_2px_8px_rgba(27,200,140,0.25)] hover:shadow-[0_4px_12px_rgba(27,200,140,0.35)] px-2.5 py-1 ${PARAGRAPH_TEXT_CLASS}`}
+                  className={`inline-flex items-center gap-2 rounded-full  bg-[rgb(27,200,140)] text-white transition-all hover:bg-emerald-400 hover:-translate-y-0.5  hover:shadow-[0_4px_12px_rgba(27,200,140,0.35)] px-4 py-1.5 text-sm text-white my-0.5 font-normal`}
                   type="button"
                   aria-label={`Use example: ${ex.label}`}
                 >
