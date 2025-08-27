@@ -295,7 +295,7 @@ export default function WorkflowStatusPage() {
     loadDiscoveryIcons();
   }, []);
 
-  // Rotate discovery icons during discovery phase
+  // Rotate discovery icons during discovery phase - much faster for engagement
   useEffect(() => {
     if (discoveryIconTimerRef.current) {
       clearInterval(discoveryIconTimerRef.current);
@@ -303,9 +303,15 @@ export default function WorkflowStatusPage() {
     }
 
     if (phase === "discovery" && discoveryIcons.length > 0 && visibleCount === 0) {
+      // Start with immediate icon change
+      if (discoveryIcons.length > 0) {
+        setCurrentDiscoveryIcon(discoveryIcons[Math.floor(Math.random() * discoveryIcons.length)]);
+      }
+      
+      // Then continue with rapid changes
       discoveryIconTimerRef.current = setInterval(() => {
         setCurrentDiscoveryIcon(discoveryIcons[Math.floor(Math.random() * discoveryIcons.length)]);
-      }, 800); // Change icon every 800ms for engaging feel
+      }, 300); // Much faster - change every 300ms for high engagement
     }
 
     return () => {
@@ -722,22 +728,25 @@ export default function WorkflowStatusPage() {
 
             {/* Discovery preloader */}
             {phase === "discovery" && visibleCount === 0 && (
-              <div className="mb-6 flex min-h-[200px] items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
+              <div className="mb-6 flex min-h-[300px] items-center justify-center">
+                <div className="flex flex-col items-center gap-6">
+                  {/* Main discovery animation */}
                   <div className="relative">
-                    {/* Rotating background circle */}
-                    <div className="absolute inset-0 w-20 h-20 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+                    {/* Outer rotating ring */}
+                    <div className="absolute inset-0 w-32 h-32 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
                     
-                    {/* Dynamic icon in center */}
-                    <div className="w-20 h-20 flex items-center justify-center">
+                    {/* Inner pulsing ring */}
+                    <div className="absolute inset-2 w-28 h-28 border-2 border-emerald-300 border-b-emerald-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
+                    
+                    {/* Central icon container */}
+                    <div className="w-32 h-32 flex items-center justify-center">
                       {currentDiscoveryIcon && (
-                        <div className="w-10 h-10 transition-all duration-300 ease-in-out transform hover:scale-110">
+                        <div className="w-16 h-16 transition-all duration-200 ease-in-out transform scale-100 hover:scale-110">
                           <img
                             src={`/icons/${currentDiscoveryIcon}.svg`}
                             alt={currentDiscoveryIcon}
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain filter drop-shadow-lg"
                             onError={(e) => {
-                              // Fallback to a simple div if icon fails to load
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                             }}
@@ -745,22 +754,63 @@ export default function WorkflowStatusPage() {
                         </div>
                       )}
                     </div>
+                    
+                    {/* Floating mini icons around the main circle */}
+                    {discoveryIcons.slice(0, 8).map((iconName, index) => {
+                      const angle = (index * 45) * (Math.PI / 180); // 45 degrees apart
+                      const radius = 80;
+                      const x = Math.cos(angle) * radius;
+                      const y = Math.sin(angle) * radius;
+                      
+                      return (
+                        <div
+                          key={`${iconName}-${index}`}
+                          className="absolute w-8 h-8 opacity-30 animate-pulse"
+                          style={{
+                            left: `calc(50% + ${x}px - 16px)`,
+                            top: `calc(50% + ${y}px - 16px)`,
+                            animationDelay: `${index * 0.2}s`,
+                            animationDuration: '2s'
+                          }}
+                        >
+                          <img
+                            src={`/icons/${iconName}.svg`}
+                            alt={iconName}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.opacity = '0';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                   
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-1">
+                    <h3 className="text-xl font-semibold text-neutral-900 mb-2">
                       Discovering your workflow
                     </h3>
-                    <p className="text-sm text-neutral-600 max-w-sm">
-                      Hang on while our AI gets to work analyzing your requirements and finding the perfect nodes
+                    <p className="text-sm text-neutral-600 max-w-md leading-relaxed">
+                      Our AI is analyzing your requirements and exploring thousands of possible integrations to build the perfect automation workflow
                     </p>
+                    
+                    {/* Current icon name display */}
+                    {currentDiscoveryIcon && (
+                      <div className="mt-3 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium inline-block">
+                        Exploring: {currentDiscoveryIcon.charAt(0).toUpperCase() + currentDiscoveryIcon.slice(1)}
+                      </div>
+                    )}
                   </div>
                   
-                  {/* Animated dots */}
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                  {/* Enhanced animated progress indicator */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                    <span className="text-xs text-neutral-500 ml-2">Finding the best nodes...</span>
                   </div>
                 </div>
               </div>
