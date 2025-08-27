@@ -31,6 +31,8 @@ const WorkflowDirectoryPage = () => {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'recent' | 'popular'>('relevance')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   // Load workflows on component mount
   useEffect(() => {
@@ -152,6 +154,17 @@ const WorkflowDirectoryPage = () => {
     return filtered
   }, [workflows, searchQuery, selectedCategory, sortBy])
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredWorkflows.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentWorkflows = filteredWorkflows.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedCategory, sortBy])
+
   const categories = [
     'all',
     'Data Integration',
@@ -167,48 +180,48 @@ const WorkflowDirectoryPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Workflow Directory
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Discover and search through our collection of automation workflows
           </p>
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 mb-6 sm:mb-8">
           {/* Search Bar */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <div className="relative mb-4 sm:mb-6">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
             <input
               type="text"
-              placeholder="Search workflows by name, nodes, or keywords (e.g., 'leadgen', 'linkedin', 'invoice')..."
+              placeholder="Search workflows by name, nodes, or keywords..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-9 sm:pl-10 pr-10 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             )}
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
             {/* Category Filter */}
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
+              <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
@@ -220,11 +233,11 @@ const WorkflowDirectoryPage = () => {
 
             {/* Sort By */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Sort by:</span>
+              <span className="text-sm text-gray-500 flex-shrink-0">Sort by:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="relevance">Relevance</option>
                 <option value="recent">Most Recent</option>
@@ -233,18 +246,18 @@ const WorkflowDirectoryPage = () => {
             </div>
 
             {/* Results Count */}
-            <div className="ml-auto text-sm text-gray-500">
+            <div className="text-sm text-gray-500 sm:ml-auto">
               {loading ? 'Loading...' : `${filteredWorkflows.length} workflows found`}
             </div>
           </div>
         </div>
 
         {/* Results */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-500">Loading workflows...</p>
+              <p className="mt-2 text-gray-500 text-sm sm:text-base">Loading workflows...</p>
             </div>
           ) : filteredWorkflows.length === 0 ? (
             <div className="text-center py-12">
@@ -252,7 +265,7 @@ const WorkflowDirectoryPage = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 No workflows found
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-sm sm:text-base px-4">
                 {searchQuery 
                   ? `No workflows match "${searchQuery}". Try different keywords or browse all workflows.`
                   : 'No workflows available in this category.'
@@ -260,9 +273,74 @@ const WorkflowDirectoryPage = () => {
               </p>
             </div>
           ) : (
-            filteredWorkflows.map((workflow) => (
-              <WorkflowCard key={workflow.session_id} workflow={workflow} />
-            ))
+            <>
+              {currentWorkflows.map((workflow) => (
+                <WorkflowCard key={workflow.session_id} workflow={workflow} />
+              ))}
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
+                  <div className="text-sm text-gray-500">
+                    Showing {startIndex + 1} to {Math.min(endIndex, filteredWorkflows.length)} of {filteredWorkflows.length} workflows
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Previous button */}
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    
+                    {/* Page numbers */}
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // Show first page, last page, current page, and pages around current
+                          return page === 1 || 
+                                 page === totalPages || 
+                                 Math.abs(page - currentPage) <= 1
+                        })
+                        .map((page, index, array) => {
+                          // Add ellipsis if there's a gap
+                          const prevPage = array[index - 1]
+                          const showEllipsis = prevPage && page - prevPage > 1
+                          
+                          return (
+                            <React.Fragment key={page}>
+                              {showEllipsis && (
+                                <span className="px-2 py-2 text-sm text-gray-400">...</span>
+                              )}
+                              <button
+                                onClick={() => setCurrentPage(page)}
+                                className={`px-3 py-2 text-sm border rounded-md transition-colors ${
+                                  currentPage === page
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            </React.Fragment>
+                          )
+                        })}
+                    </div>
+                    
+                    {/* Next button */}
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -310,10 +388,10 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
     >
       {/* Hover overlay with full description - Desktop only */}
       {isHovered && workflow.seoMetadata?.description && (
-        <div className="absolute inset-0 bg-black/80 z-10 p-6 flex items-center justify-center hidden md:flex">
+        <div className="absolute inset-0 bg-black/80 z-10 p-4 sm:p-6 flex items-center justify-center hidden md:flex">
           <div className="text-white text-center max-w-md">
-            <h4 className="font-semibold mb-3 text-lg">About this workflow</h4>
-            <p className="text-sm leading-relaxed opacity-90">
+            <h4 className="font-semibold mb-3 text-base sm:text-lg">About this workflow</h4>
+            <p className="text-xs sm:text-sm leading-relaxed opacity-90">
               {workflow.seoMetadata.description}
             </p>
             <div className="mt-4 text-xs opacity-75">
@@ -323,12 +401,12 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         </div>
       )}
 
-      <div className={`p-6 transition-all duration-200 ${isHovered ? 'bg-gray-50' : 'bg-white'}`}>
+      <div className={`p-4 sm:p-6 transition-all duration-200 ${isHovered ? 'bg-gray-50' : 'bg-white'}`}>
         {/* Header with title and vetted badge */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-3 sm:mb-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                 {workflow.state?.settings?.name || 'Untitled Workflow'}
               </h3>
               {workflow.is_vetted && <VettedBadge className="flex-shrink-0" />}
@@ -337,16 +415,16 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         </div>
 
         {/* Creator info */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="flex-shrink-0">
             {user.avatar ? (
               <img 
                 src={user.avatar} 
                 alt={user.name}
-                className="w-8 h-8 rounded-full object-cover"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center">
                 <span className="text-xs font-medium text-blue-600">
                   {user.initials}
                 </span>
@@ -354,7 +432,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
               {user.name}
             </p>
             <p className="text-xs text-gray-500">
@@ -368,11 +446,11 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         </div>
 
         {/* Tags section */}
-        <div className="mb-4">
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-3 sm:mb-4">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {/* Category tag */}
             {workflow.seoMetadata?.category && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 {workflow.seoMetadata.category}
               </span>
             )}
@@ -381,20 +459,21 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
             {mainNodes.map((node: any, index: number) => (
               <span
                 key={index}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
               >
                 <NodeIcon
                   name={resolveIconName(node.type)}
-                  size={12}
+                  size={10}
+                  className="sm:w-3 sm:h-3"
                 />
-                <span className="truncate max-w-20">
+                <span className="truncate max-w-16 sm:max-w-20">
                   {node.name?.replace(/^@n8n\/n8n-nodes-base\./, '') || node.type?.replace(/^@n8n\/n8n-nodes-base\./, '')}
                 </span>
               </span>
             ))}
             
             {nodeCount > 3 && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+              <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
                 +{nodeCount - 3} more
               </span>
             )}
@@ -403,18 +482,18 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
 
         {/* Keywords tags */}
         {workflow.seoMetadata?.keywords && workflow.seoMetadata.keywords.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-3 sm:mb-4">
             <div className="flex flex-wrap gap-1">
               {workflow.seoMetadata.keywords.slice(0, 5).map((keyword: string, index: number) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors"
+                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors"
                 >
                   #{keyword}
                 </span>
               ))}
               {workflow.seoMetadata.keywords.length > 5 && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs text-gray-400">
+                <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-xs text-gray-400">
                   +{workflow.seoMetadata.keywords.length - 5} more
                 </span>
               )}
@@ -426,11 +505,11 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         {workflow.seoMetadata?.businessValue && (
           <div className="pt-3 border-t border-gray-100">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-600 flex items-center gap-1">
+              <span className="text-xs sm:text-sm font-medium text-green-600 flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 {workflow.seoMetadata.businessValue}
               </span>
-              <div className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">
+              <div className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors hidden sm:block">
                 Click to explore →
               </div>
             </div>
