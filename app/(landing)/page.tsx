@@ -159,8 +159,8 @@ export default function Home() {
           throw new Error("Failed to save your workflow prompt");
         }
 
-        // Store session token in localStorage for retrieval after auth
-        localStorage.setItem("pending_workflow_session", sessionToken);
+        // Store session data directly in localStorage for retrieval after auth
+        localStorage.setItem("pending_workflow_session", JSON.stringify(tempPromptData));
 
         // Redirect to login page with the workflow session ID
         router.push(`/auth/login?returnUrl=/workflow/${workflowSessionId}`);

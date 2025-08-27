@@ -179,55 +179,23 @@ export default function WorkflowStatusPage() {
         return;
       }
 
-      let sessionToken, tempData;
+      let promptData;
       try {
         const parsedData = JSON.parse(pendingSessionData);
         console.log('Parsed pending session data:', parsedData);
         
-        // Check if this is the new format with direct prompt and workflowSessionId
+        // Check if this is the new direct format with prompt and workflowSessionId
         if (parsedData.prompt && parsedData.workflowSessionId) {
-          tempData = parsedData;
-          sessionToken = null; // No need for database lookup
+          console.log('Using data from parsed session (direct format)');
+          promptData = parsedData;
         } else {
-          // Old format with sessionToken
-          sessionToken = parsedData.sessionToken || parsedData;
-          tempData = parsedData;
-        }
-      } catch (e) {
-        console.log('Failed to parse as JSON, treating as raw session token');
-        // If it's not JSON, treat it as the session token directly
-        sessionToken = pendingSessionData;
-      }
-
-      let promptData;
-      
-      if (tempData && tempData.prompt && tempData.workflowSessionId) {
-        console.log('Using data from parsed session (direct format)');
-        // Data is already in the parsed format - no database lookup needed
-        promptData = tempData;
-      } else if (sessionToken) {
-        console.log('Fetching session data from Supabase with token:', sessionToken);
-        // Retrieve the session data from Supabase using the token
-        const { data: sessionData, error: sessionError } = await supabase
-          .from("sessions")
-          .select("temp_prompt_data")
-          .eq("session_token", sessionToken)
-          .single();
-
-        if (sessionError || !sessionData?.temp_prompt_data) {
-          console.error("Failed to retrieve session:", sessionError);
-          setError("Session not found in database");
+          console.error("Invalid session data format:", parsedData);
+          setError("Invalid session data format");
           setLoading(false);
           return;
         }
-
-        promptData = sessionData.temp_prompt_data as {
-          prompt: string;
-          workflowSessionId: string;
-        };
-        console.log('Retrieved prompt data from database:', promptData);
-      } else {
-        console.error("No valid session data or token found");
+      } catch (e) {
+        console.error('Failed to parse session data as JSON:', e);
         setError("Invalid session data");
         setLoading(false);
         return;
@@ -243,17 +211,8 @@ export default function WorkflowStatusPage() {
 
       console.log('Creating workflow with prompt:', promptData.prompt);
 
-      // Now link the session to the authenticated user and clear temp data (if using token)
-      if (sessionToken) {
-        console.log('Updating session in database');
-        await supabase
-          .from("sessions")
-          .update({
-            user_id: user.id,
-            temp_prompt_data: null,
-          })
-          .eq("session_token", sessionToken);
-      }
+      // No need to update database since we're using direct localStorage format
+      console.log('Using direct session format, no database update needed');
 
       // Create the workflow with the stored prompt
       const res = await fetch("/api/workflow/create", {
