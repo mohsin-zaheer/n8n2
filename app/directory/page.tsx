@@ -40,7 +40,9 @@ const WorkflowDirectoryPage = () => {
         
         // Fetch real workflows from Supabase
         const workflowQueries = new WorkflowQueries()
+        console.log('Fetching workflows from Supabase...')
         const publicWorkflows = await workflowQueries.listPublicWorkflows(50)
+        console.log('Fetched workflows:', publicWorkflows.length, publicWorkflows)
         
         // Transform the data to match our interface
         const transformedWorkflows: WorkflowSearchResult[] = publicWorkflows.map(workflow => ({
@@ -61,6 +63,7 @@ const WorkflowDirectoryPage = () => {
           user: workflow.user
         }))
         
+        console.log('Transformed workflows:', transformedWorkflows.length, transformedWorkflows)
         setWorkflows(transformedWorkflows)
       } catch (error) {
         console.error('Failed to load workflows:', error)

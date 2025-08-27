@@ -148,6 +148,29 @@ export class WorkflowQueries {
     limit: number = 100
   ): Promise<WorkflowBySlugResponse[]> {
     try {
+      console.log('Querying workflow_sessions table...');
+      
+      // First, let's try to get all workflows to see what we have
+      const { data: allData, error: allError } = await this.supabase
+        .from("workflow_sessions")
+        .select(`
+          session_id,
+          created_at,
+          updated_at,
+          state,
+          is_vetted,
+          user_id
+        `)
+        .order("created_at", { ascending: false })
+        .limit(10); // Just get a few to debug
+
+      console.log('All workflows query result:', { allData, allError });
+      
+      if (allData && allData.length > 0) {
+        console.log('Sample workflow state structure:', allData[0].state);
+      }
+
+      // Now try the filtered query
       const { data, error } = await this.supabase
         .from("workflow_sessions")
         .select(`
@@ -158,10 +181,11 @@ export class WorkflowQueries {
           is_vetted,
           user_id
         `)
-        .not("state->seo", "is", null)
-        .eq("state->phase", "complete")
+        .not("state", "is", null)
         .order("created_at", { ascending: false })
         .limit(limit);
+
+      console.log('Filtered workflows query result:', { data, error, count: data?.length });
 
       if (error || !data) {
         console.error("Error listing public workflows:", error);
@@ -171,19 +195,37 @@ export class WorkflowQueries {
       const workflows = data
         .map((row) => {
           const state = row.state as any;
-          if (!state?.seo) return null;
+          console.log('Processing workflow:', row.session_id, 'state:', state);
+          
+          // More flexible filtering - accept workflows with any SEO data or completed workflows
+          const hasSeo = state?.seo;
+          const isComplete = state?.phase === 'complete' || state?.phase === 'documentation' || state?.phase === 'building';
+          
+          if (!hasSeo && !isComplete) {
+            console.log('Skipping workflow - no SEO and not complete:', row.session_id);
+            return null;
+          }
 
           // For now, we'll skip user data fetching on the client side
           // This should be handled by a server-side API endpoint
           const user = null;
 
-          return {
+          const workflow = {
             sessionId: row.session_id,
             workflow: {
-              nodes: state.workflow?.nodes || [],
-              settings: state.workflow?.settings || {},
+              nodes: state.workflow?.nodes || state.nodes || [],
+              settings: state.workflow?.settings || state.settings || {},
             },
-            seo: state.seo,
+            seo: state.seo || {
+              slug: row.session_id,
+              title: state.workflow?.settings?.name || state.settings?.name || 'Untitled Workflow',
+              description: state.userPrompt || 'Automated workflow',
+              keywords: [],
+              businessValue: 'Automation',
+              category: 'Automation' as any,
+              integrations: [],
+              generatedAt: row.created_at
+            },
             configAnalysis: state.configAnalysis,
             userPrompt: state.userPrompt || "",
             createdAt: row.created_at,
@@ -191,9 +233,13 @@ export class WorkflowQueries {
             isVetted: row.is_vetted || false,
             user: user,
           };
+          
+          console.log('Created workflow object:', workflow);
+          return workflow;
         })
         .filter(Boolean) as WorkflowBySlugResponse[];
 
+      console.log('Final workflows array:', workflows.length, workflows);
       return workflows;
     } catch (error) {
       console.error("Error listing public workflows:", error);
