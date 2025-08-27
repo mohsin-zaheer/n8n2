@@ -20,12 +20,22 @@ function LoginContent() {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          const pendingSession = localStorage.getItem("pending_workflow_session");
-          if (pendingSession && returnUrl === "/workflow/create") {
-            router.push("/workflow/create");
-          } else {
-            router.push(returnUrl);
+          // Check for pending workflow session
+          const pendingSession = localStorage.getItem("pending_workflow_session") || 
+                                sessionStorage.getItem("pending_workflow_session");
+          
+          if (pendingSession) {
+            // If there's a pending session, redirect to the workflow page
+            // The workflow page will handle creating the workflow from the pending session
+            const sessionData = JSON.parse(pendingSession);
+            if (sessionData.workflowSessionId) {
+              router.push(`/workflow/${sessionData.workflowSessionId}`);
+              return;
+            }
           }
+          
+          // Otherwise redirect to the return URL
+          router.push(returnUrl);
         }
       } catch (error) {
         console.error("Error checking auth:", error);
@@ -42,16 +52,30 @@ function LoginContent() {
       setLoading(true);
       setError("");
 
+      // Preserve pending session data across login
       const pendingSession = localStorage.getItem("pending_workflow_session");
+      let redirectUrl = returnUrl;
+      
       if (pendingSession) {
+        // Store in sessionStorage as backup
         sessionStorage.setItem("pending_workflow_session", pendingSession);
+        
+        // If there's a pending workflow, redirect to that specific workflow page
+        try {
+          const sessionData = JSON.parse(pendingSession);
+          if (sessionData.workflowSessionId) {
+            redirectUrl = `/workflow/${sessionData.workflowSessionId}`;
+          }
+        } catch (e) {
+          console.error("Error parsing pending session:", e);
+        }
       }
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           // Supabase will handle /auth/v1/callback automatically
-          redirectTo: `${window.location.origin}${returnUrl}`,
+          redirectTo: `${window.location.origin}${redirectUrl}`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",

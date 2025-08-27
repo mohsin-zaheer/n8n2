@@ -166,57 +166,76 @@ export default function WorkflowStatusPage() {
         return;
       }
 
-      // Check for pending session in localStorage
-      const pendingSessionToken = localStorage.getItem(
-        "pending_workflow_session"
-      );
-      if (!pendingSessionToken) {
+      // Check for pending session in localStorage or sessionStorage
+      const pendingSessionData = localStorage.getItem("pending_workflow_session") || 
+                                sessionStorage.getItem("pending_workflow_session");
+      
+      if (!pendingSessionData) {
         setError("Session not found");
         setLoading(false);
         return;
       }
 
-      // Retrieve the session data from Supabase
-      const { data: sessionData, error: sessionError } = await supabase
-        .from("sessions")
-        .select("temp_prompt_data")
-        .eq("session_token", pendingSessionToken)
-        .single();
-
-      if (sessionError || !sessionData?.temp_prompt_data) {
-        console.error("Failed to retrieve session:", sessionError);
-        setError("Session not found");
-        setLoading(false);
-        return;
+      let sessionToken, tempData;
+      try {
+        const parsedData = JSON.parse(pendingSessionData);
+        sessionToken = parsedData.sessionToken || pendingSessionData; // Handle both formats
+        tempData = parsedData;
+      } catch (e) {
+        // If it's not JSON, treat it as the session token directly
+        sessionToken = pendingSessionData;
       }
 
-      const tempData = sessionData.temp_prompt_data as {
-        prompt: string;
-        workflowSessionId: string;
-      };
+      let promptData;
+      
+      if (tempData && tempData.prompt && tempData.workflowSessionId) {
+        // Data is already in the parsed format
+        promptData = tempData;
+      } else {
+        // Retrieve the session data from Supabase using the token
+        const { data: sessionData, error: sessionError } = await supabase
+          .from("sessions")
+          .select("temp_prompt_data")
+          .eq("session_token", sessionToken)
+          .single();
+
+        if (sessionError || !sessionData?.temp_prompt_data) {
+          console.error("Failed to retrieve session:", sessionError);
+          setError("Session not found");
+          setLoading(false);
+          return;
+        }
+
+        promptData = sessionData.temp_prompt_data as {
+          prompt: string;
+          workflowSessionId: string;
+        };
+      }
 
       // Verify this is the correct workflow session
-      if (tempData.workflowSessionId !== sessionId) {
+      if (promptData.workflowSessionId !== sessionId) {
         setError("Session mismatch");
         setLoading(false);
         return;
       }
 
-      // Now link the session to the authenticated user and clear temp data
-      await supabase
-        .from("sessions")
-        .update({
-          user_id: user.id,
-          temp_prompt_data: null,
-        })
-        .eq("session_token", pendingSessionToken);
+      // Now link the session to the authenticated user and clear temp data (if using token)
+      if (sessionToken && sessionToken !== pendingSessionData) {
+        await supabase
+          .from("sessions")
+          .update({
+            user_id: user.id,
+            temp_prompt_data: null,
+          })
+          .eq("session_token", sessionToken);
+      }
 
       // Create the workflow with the stored prompt
       const res = await fetch("/api/workflow/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: tempData.prompt,
+          prompt: promptData.prompt,
           sessionId: sessionId, // Use the pre-generated session ID
         }),
       });
@@ -225,7 +244,7 @@ export default function WorkflowStatusPage() {
         throw new Error("Failed to create workflow");
       }
 
-      // Clear the pending session from localStorage
+      // Clear the pending session from both storages
       localStorage.removeItem("pending_workflow_session");
       sessionStorage.removeItem("pending_workflow_session");
 
