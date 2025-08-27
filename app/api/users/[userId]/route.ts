@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/config/supabase';
+import { createServiceClient } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +12,7 @@ export async function GET(
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = createServiceClient();
     
     // Get user data from auth.users using service role
     const { data: userData, error } = await supabase.auth.admin.getUserById(userId);
