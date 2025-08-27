@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Search, Filter, X, Clock, Users, Zap } from 'lucide-react'
+import { Search, Filter, X, Clock, Users, Zap, User } from 'lucide-react'
 import { getWorkflowQueries } from '@/lib/db/workflow-queries'
 import { WorkflowBySlugResponse } from '@/lib/db/types'
 import { VettedBadge } from '@/components/ui/vetted-badge'
@@ -236,105 +236,157 @@ const WorkflowDirectoryPage = () => {
 
 // Workflow Card Component
 const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }) => {
+  const [isHovered, setIsHovered] = useState(false)
   const nodeCount = workflow.state?.nodes?.length || 0
-  const mainNodes = workflow.state?.nodes?.slice(0, 5) || []
+  const mainNodes = workflow.state?.nodes?.slice(0, 3) || []
+  
+  // Mock user data - in real app this would come from workflow.user or similar
+  const mockUser = {
+    name: workflow.created_by || 'Anonymous User',
+    avatar: null, // No avatar URL for now
+    initials: (workflow.created_by || 'AU').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  const handleCardClick = () => {
+    // Navigate to workflow detail page
+    window.location.href = `/workflow/${workflow.session_id}`
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-      <div className="p-6">
+    <div 
+      className="group relative bg-white rounded-xl shadow-sm border hover:shadow-lg hover:border-gray-300 transition-all duration-200 cursor-pointer overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={handleCardClick}
+    >
+      {/* Hover overlay with full description - Desktop only */}
+      {isHovered && workflow.seoMetadata?.description && (
+        <div className="absolute inset-0 bg-black/80 z-10 p-6 flex items-center justify-center hidden md:flex">
+          <div className="text-white text-center max-w-md">
+            <h4 className="font-semibold mb-3 text-lg">About this workflow</h4>
+            <p className="text-sm leading-relaxed opacity-90">
+              {workflow.seoMetadata.description}
+            </p>
+            <div className="mt-4 text-xs opacity-75">
+              Click to view details
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`p-6 transition-all duration-200 ${isHovered ? 'bg-gray-50' : 'bg-white'}`}>
+        {/* Header with title and vetted badge */}
         <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-xl font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                 {workflow.state?.settings?.name || 'Untitled Workflow'}
               </h3>
-              {workflow.is_vetted && <VettedBadge />}
-            </div>
-            
-            {workflow.seoMetadata?.description && (
-              <p className="text-gray-600 mb-3">
-                {workflow.seoMetadata.description}
-              </p>
-            )}
-
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center gap-1">
-                <Zap className="h-4 w-4" />
-                <span>{nodeCount} nodes</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>Updated {new Date(workflow.updated_at).toLocaleDateString()}</span>
-              </div>
-              {workflow.seoMetadata?.category && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                  {workflow.seoMetadata.category}
-                </span>
-              )}
+              {workflow.is_vetted && <VettedBadge className="flex-shrink-0" />}
             </div>
           </div>
         </div>
 
-        {/* Node Preview */}
-        {mainNodes.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Key Components:</h4>
-            <div className="flex flex-wrap gap-2">
-              {mainNodes.map((node, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-sm"
-                >
-                  <NodeIcon
-                    name={getIconName(node.type)}
-                    size={16}
-                  />
-                  <span>{node.name || node.type}</span>
-                </div>
-              ))}
-              {nodeCount > 5 && (
-                <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-500">
-                  +{nodeCount - 5} more
+        {/* Creator info */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-shrink-0">
+            {mockUser.avatar ? (
+              <img 
+                src={mockUser.avatar} 
+                alt={mockUser.name}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <span className="text-xs font-medium text-blue-600">
+                  {mockUser.initials}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        )}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {mockUser.name}
+            </p>
+            <p className="text-xs text-gray-500">
+              Updated {new Date(workflow.updated_at).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
+            <Zap className="h-3 w-3" />
+            <span>{nodeCount}</span>
+          </div>
+        </div>
 
-        {/* Keywords */}
-        {workflow.seoMetadata?.keywords && workflow.seoMetadata.keywords.length > 0 && (
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-1">
-              {workflow.seoMetadata.keywords.slice(0, 8).map((keyword, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs border"
-                >
-                  {keyword}
+        {/* Tags section */}
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2">
+            {/* Category tag */}
+            {workflow.seoMetadata?.category && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {workflow.seoMetadata.category}
+              </span>
+            )}
+            
+            {/* Node type tags */}
+            {mainNodes.map((node, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                <NodeIcon
+                  name={getIconName(node.type)}
+                  size={12}
+                />
+                <span className="truncate max-w-20">
+                  {node.name?.replace(/^@n8n\/n8n-nodes-base\./, '') || node.type?.replace(/^@n8n\/n8n-nodes-base\./, '')}
                 </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="flex items-center gap-2">
-            {workflow.seoMetadata?.businessValue && (
-              <span className="text-sm font-medium text-green-600">
-                {workflow.seoMetadata.businessValue}
+              </span>
+            ))}
+            
+            {nodeCount > 3 && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                +{nodeCount - 3} more
               </span>
             )}
           </div>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors">
-              Preview
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors">
-              Use Template
-            </button>
-          </div>
         </div>
+
+        {/* Keywords tags */}
+        {workflow.seoMetadata?.keywords && workflow.seoMetadata.keywords.length > 0 && (
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-1">
+              {workflow.seoMetadata.keywords.slice(0, 5).map((keyword, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors"
+                >
+                  #{keyword}
+                </span>
+              ))}
+              {workflow.seoMetadata.keywords.length > 5 && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs text-gray-400">
+                  +{workflow.seoMetadata.keywords.length - 5} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Business value footer */}
+        {workflow.seoMetadata?.businessValue && (
+          <div className="pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-green-600 flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                {workflow.seoMetadata.businessValue}
+              </span>
+              <div className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">
+                Click to explore →
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
