@@ -53,12 +53,7 @@ export class WorkflowQueries {
           updated_at, 
           state, 
           is_vetted,
-          user_id,
-          users:user_id (
-            id,
-            email,
-            raw_user_meta_data
-          )
+          user_id
         `)
         .eq("state->seo->>slug", slug)
         .single<Row>();
@@ -81,18 +76,26 @@ export class WorkflowQueries {
         return null;
       }
 
-      // Extract user information
+      // Extract user information if user_id exists
       let user = null;
-      if (data.users) {
-        const userData = Array.isArray(data.users) ? data.users[0] : data.users;
-        const metaData = userData.raw_user_meta_data || {};
-        
-        user = {
-          id: userData.id,
-          email: userData.email,
-          full_name: metaData.full_name || metaData.name || null,
-          avatar_url: metaData.avatar_url || metaData.picture || null,
-        };
+      if (data.user_id) {
+        try {
+          // Fetch user data separately from auth.users
+          const { data: userData, error: userError } = await this.supabase.auth.admin.getUserById(data.user_id);
+          
+          if (!userError && userData.user) {
+            const metaData = userData.user.user_metadata || {};
+            user = {
+              id: userData.user.id,
+              email: userData.user.email || '',
+              full_name: metaData.full_name || metaData.name || null,
+              avatar_url: metaData.avatar_url || metaData.picture || null,
+            };
+          }
+        } catch (userFetchError) {
+          console.error("Error fetching user data:", userFetchError);
+          // Continue without user data rather than failing the whole request
+        }
       }
 
       return {
