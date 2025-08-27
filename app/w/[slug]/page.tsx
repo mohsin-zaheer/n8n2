@@ -276,6 +276,46 @@ export default async function WorkflowPublicPage({
                   <dt className="text-neutral-500">Category</dt>
                   <dd>{seo?.category || "Automation"}</dd>
                 </div>
+                {workflowData.user && (
+                  <div className="flex justify-between items-center">
+                    <dt className="text-neutral-500">Created by</dt>
+                    <dd className="flex items-center gap-2">
+                      {workflowData.user.avatar_url ? (
+                        <img 
+                          src={workflowData.user.avatar_url} 
+                          alt={workflowData.user.full_name || workflowData.user.email}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-xs font-medium text-blue-600">
+                            {(() => {
+                              const fullName = workflowData.user.full_name;
+                              const email = workflowData.user.email;
+                              
+                              if (fullName) {
+                                const words = fullName.trim().split(/\s+/);
+                                if (words.length >= 2) {
+                                  return (words[0][0] + words[1][0]).toUpperCase();
+                                } else {
+                                  return words[0].slice(0, 2).toUpperCase();
+                                }
+                              } else if (email) {
+                                const emailPrefix = email.split('@')[0];
+                                return emailPrefix.slice(0, 2).toUpperCase();
+                              }
+                              
+                              return 'AU';
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                      <span className="text-sm">
+                        {workflowData.user.full_name || workflowData.user.email}
+                      </span>
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <dt className="text-neutral-500">Created at</dt>
                   <dd>{new Date(createdAt).toLocaleDateString()}</dd>
