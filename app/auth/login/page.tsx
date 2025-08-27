@@ -111,6 +111,8 @@ function LoginContent() {
       const pendingSession = localStorage.getItem("pending_workflow_session");
       let redirectUrl = returnUrl;
       
+      console.log('handleGoogleLogin - pendingSession:', pendingSession);
+      
       if (pendingSession) {
         // Store in sessionStorage as backup
         sessionStorage.setItem("pending_workflow_session", pendingSession);
@@ -118,11 +120,15 @@ function LoginContent() {
         // If there's a pending workflow, redirect to that specific workflow page
         try {
           const sessionData = JSON.parse(pendingSession);
+          console.log('handleGoogleLogin - parsed sessionData:', sessionData);
           if (sessionData.workflowSessionId) {
             redirectUrl = `/workflow/${sessionData.workflowSessionId}`;
+            console.log('handleGoogleLogin - redirectUrl set to:', redirectUrl);
           }
         } catch (e) {
           console.error("Error parsing pending session:", e);
+          // If it's not JSON, it might be a raw session token
+          // In this case, we'll let the workflow page handle it
         }
       }
 

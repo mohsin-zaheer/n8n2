@@ -183,8 +183,16 @@ export default function WorkflowStatusPage() {
       try {
         const parsedData = JSON.parse(pendingSessionData);
         console.log('Parsed pending session data:', parsedData);
-        sessionToken = parsedData.sessionToken || pendingSessionData; // Handle both formats
-        tempData = parsedData;
+        
+        // Check if this is the new format with direct prompt and workflowSessionId
+        if (parsedData.prompt && parsedData.workflowSessionId) {
+          tempData = parsedData;
+          sessionToken = null; // No need for database lookup
+        } else {
+          // Old format with sessionToken
+          sessionToken = parsedData.sessionToken || parsedData;
+          tempData = parsedData;
+        }
       } catch (e) {
         console.log('Failed to parse as JSON, treating as raw session token');
         // If it's not JSON, treat it as the session token directly
@@ -194,10 +202,10 @@ export default function WorkflowStatusPage() {
       let promptData;
       
       if (tempData && tempData.prompt && tempData.workflowSessionId) {
-        console.log('Using data from parsed session');
-        // Data is already in the parsed format
+        console.log('Using data from parsed session (direct format)');
+        // Data is already in the parsed format - no database lookup needed
         promptData = tempData;
-      } else {
+      } else if (sessionToken) {
         console.log('Fetching session data from Supabase with token:', sessionToken);
         // Retrieve the session data from Supabase using the token
         const { data: sessionData, error: sessionError } = await supabase
@@ -218,6 +226,11 @@ export default function WorkflowStatusPage() {
           workflowSessionId: string;
         };
         console.log('Retrieved prompt data from database:', promptData);
+      } else {
+        console.error("No valid session data or token found");
+        setError("Invalid session data");
+        setLoading(false);
+        return;
       }
 
       // Verify this is the correct workflow session
@@ -231,7 +244,7 @@ export default function WorkflowStatusPage() {
       console.log('Creating workflow with prompt:', promptData.prompt);
 
       // Now link the session to the authenticated user and clear temp data (if using token)
-      if (sessionToken && sessionToken !== pendingSessionData) {
+      if (sessionToken) {
         console.log('Updating session in database');
         await supabase
           .from("sessions")
