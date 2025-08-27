@@ -2,14 +2,19 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { Search, Filter, X, Clock, Users, Zap, User } from 'lucide-react'
-import { getWorkflowQueries } from '@/lib/db/workflow-queries'
-import { WorkflowBySlugResponse } from '@/lib/db/types'
+import { WorkflowQueries } from '@/lib/db/workflow-queries'
+import { WorkflowState, WorkflowSEOMetadata } from '@/lib/db/types'
 import { VettedBadge } from '@/components/ui/vetted-badge'
-import { NodeIcon } from '@/components/NodeIcon'
-import { getIconName } from '@/lib/icon-aliases'
+import { NodeIcon } from '@/components/ui/node-icon'
+import { resolveIconName } from '@/lib/icon-aliases'
 
-interface WorkflowSearchResult extends WorkflowBySlugResponse {
-  // Add search relevance score
+interface WorkflowSearchResult {
+  session_id: string;
+  created_by?: string;
+  updated_at: string;
+  is_vetted?: boolean;
+  state?: WorkflowState;
+  seoMetadata?: WorkflowSEOMetadata;
   relevanceScore?: number;
 }
 
@@ -25,7 +30,7 @@ const WorkflowDirectoryPage = () => {
     const loadWorkflows = async () => {
       try {
         setLoading(true)
-        const workflowQueries = getWorkflowQueries()
+        const workflowQueries = new WorkflowQueries()
         // Note: We'll need to add a method to get all workflows
         // For now, this is a placeholder structure
         const results: WorkflowSearchResult[] = []
@@ -52,13 +57,13 @@ const WorkflowDirectoryPage = () => {
         const titleMatch = workflow.state?.settings?.name?.toLowerCase().includes(query)
         
         // Search in node types and names
-        const nodeMatch = workflow.state?.nodes?.some(node => 
+        const nodeMatch = workflow.state?.nodes?.some((node: any) => 
           node.type?.toLowerCase().includes(query) ||
           node.name?.toLowerCase().includes(query)
         )
 
         // Search in keywords/description (if available)
-        const keywordMatch = workflow.seoMetadata?.keywords?.some(keyword =>
+        const keywordMatch = workflow.seoMetadata?.keywords?.some((keyword: string) =>
           keyword.toLowerCase().includes(query)
         ) || workflow.seoMetadata?.description?.toLowerCase().includes(query)
 
@@ -76,13 +81,13 @@ const WorkflowDirectoryPage = () => {
         }
         
         // Node type match
-        const nodeMatches = workflow.state?.nodes?.filter(node => 
+        const nodeMatches = workflow.state?.nodes?.filter((node: any) => 
           node.type?.toLowerCase().includes(query)
         ).length || 0
         score += nodeMatches * 5
 
         // Keyword match
-        const keywordMatches = workflow.seoMetadata?.keywords?.filter(keyword =>
+        const keywordMatches = workflow.seoMetadata?.keywords?.filter((keyword: string) =>
           keyword.toLowerCase().includes(query)
         ).length || 0
         score += keywordMatches * 3
@@ -244,7 +249,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
   const mockUser = {
     name: workflow.created_by || 'Anonymous User',
     avatar: null, // No avatar URL for now
-    initials: (workflow.created_by || 'AU').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    initials: (workflow.created_by || 'AU').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
   const handleCardClick = () => {
@@ -329,13 +334,13 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
             )}
             
             {/* Node type tags */}
-            {mainNodes.map((node, index) => (
+            {mainNodes.map((node: any, index: number) => (
               <span
                 key={index}
                 className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
               >
                 <NodeIcon
-                  name={getIconName(node.type)}
+                  name={resolveIconName(node.type)}
                   size={12}
                 />
                 <span className="truncate max-w-20">
@@ -356,7 +361,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         {workflow.seoMetadata?.keywords && workflow.seoMetadata.keywords.length > 0 && (
           <div className="mb-4">
             <div className="flex flex-wrap gap-1">
-              {workflow.seoMetadata.keywords.slice(0, 5).map((keyword, index) => (
+              {workflow.seoMetadata.keywords.slice(0, 5).map((keyword: string, index: number) => (
                 <span
                   key={index}
                   className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors"
