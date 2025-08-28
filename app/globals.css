@@ -237,3 +237,19 @@
 .navItem4:hover .navIcon{
   color: rgb(27,200,140);
 }
+
+/* Slow pulse animation for central n8n icon */
+@keyframes pulseSlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 3s ease-in-out infinite;
+}

@@ -198,7 +198,7 @@ const WorkflowDirectoryContent = () => {
 
   return (
     <div className="min-h-screen bg-[rgb(236,244,240)]">
-      <div className="max-w-screen-lg  mx-auto px-4 py-4 sm:py-8">
+      <div className="max-w-screen-xl mx-auto px-4 py-4 sm:py-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
@@ -270,15 +270,15 @@ const WorkflowDirectoryContent = () => {
           </div>
         </div>
 
-        {/* Results */}
-        <div className="space-y-4 sm:space-y-6">
+        {/* Results - Grid layout on larger screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {loading ? (
-            <div className="text-center py-12">
+            <div className="col-span-full text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-500 text-sm sm:text-base">Loading workflows...</p>
             </div>
           ) : filteredWorkflows.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="col-span-full text-center py-12">
               <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 No workflows found
@@ -366,11 +366,18 @@ const WorkflowDirectoryContent = () => {
   )
 }
 
+// Helper function to extract base node name from full type
+const extractNodeBaseName = (nodeType: string): string => {
+  // Handle n8n-nodes-base.httpRequest -> httpRequest
+  // Handle @n8n/n8n-nodes-langchain.toolWorkflow -> toolWorkflow
+  const parts = nodeType.split('.');
+  return parts[parts.length - 1] || nodeType;
+}
+
 // Workflow Card Component
 const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }) => {
-  const [isHovered, setIsHovered] = useState(false)
   const nodeCount = workflow.state?.nodes?.length || 0
-  const mainNodes = workflow.state?.nodes?.slice(0, 3) || []
+  const mainNodes = workflow.state?.nodes?.slice(0, 8) || []
   
   // Real user data from Supabase
   const user = workflow.user ? {
@@ -413,142 +420,110 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
 
   return (
     <div 
-      className="group relative bg-white rounded-xl shadow-sm border hover:shadow-lg hover:border-gray-300 transition-all duration-200 cursor-pointer overflow-hidden "
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden ${
+        workflow.is_vetted 
+          ? 'border-2 border-green-400 shadow-[0_0_20px_rgba(27,200,140,0.2)]' 
+          : 'border border-gray-200 hover:border-gray-300'
+      }`}
       onClick={handleCardClick}
     >
-      {/* Hover overlay with full description - Desktop only */}
-      {isHovered && workflow.seoMetadata?.description && (
-        <div className="absolute inset-0 bg-black/80 z-10 p-4 sm:p-6 flex items-center justify-center hidden md:flex">
-          <div className="text-white text-center max-w-md">
-            <h4 className="font-semibold mb-3 text-base sm:text-lg">About this workflow</h4>
-            <p className="text-xs sm:text-sm leading-relaxed opacity-90">
-              {workflow.seoMetadata.description}
-            </p>
-            <div className="mt-4 text-xs opacity-75">
-              Click to view details
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className={`p-4 sm:p-6 transition-all duration-200 ${isHovered ? 'bg-gray-50' : 'bg-white'}`}>
-        {/* Header with title and vetted badge */}
-        <div className="flex items-start justify-between mb-3 sm:mb-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                {workflow.state?.settings?.name || workflow.seoMetadata?.title || 'Untitled Workflow'}
-              </h3>
-              {workflow.is_vetted && <VettedBadge className="flex-shrink-0" />}
-            </div>
-          </div>
+      <div className="p-4 sm:p-5">
+        {/* Top Pills - Category and Vetted */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {/* Main category in green pill */}
+          {workflow.seoMetadata?.category && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
+              background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+            }}>
+              {workflow.seoMetadata.category}
+            </span>
+          )}
+          {/* Vetted badge */}
+          {workflow.is_vetted && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)]">
+              ✓ Vetted workflow
+            </span>
+          )}
         </div>
 
-        {/* Creator info */}
-        <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-          <div className="flex-shrink-0">
-            {user.avatar ? (
-              <Image 
-                src={user.avatar} 
-                alt={user.name}
-                width={32}
-                height={32}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <span className="text-xs font-medium text-blue-600">
-                  {user.initials}
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
-              {user.name}
-            </p>
-            <p className="text-xs text-gray-500">
-              Updated {new Date(workflow.updated_at).toLocaleDateString()}
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
-            <Zap className="h-3 w-3" />
-            <span>{nodeCount}</span>
-          </div>
-        </div>
+        {/* Title */}
+        <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-1">
+          {workflow.state?.settings?.name || workflow.seoMetadata?.title || 'Untitled Workflow'}
+        </h3>
 
-        {/* Tags section */}
-        <div className="mb-3 sm:mb-4">
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {/* Category tag */}
-            {workflow.seoMetadata?.category && (
-              <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {workflow.seoMetadata.category}
-              </span>
-            )}
-            
-            {/* Node type tags */}
-            {mainNodes.map((node: any, index: number) => (
-              <span
-                key={index}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+        {/* Node icons */}
+        <div className="flex items-center gap-1 mb-3 overflow-hidden">
+          {mainNodes.map((node: any, index: number) => {
+            const baseName = extractNodeBaseName(node.type);
+            const iconName = resolveIconName(baseName);
+            return (
+              <div 
+                key={index} 
+                className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-gray-50 rounded"
+                title={node.name || baseName}
               >
                 <NodeIcon
-                  name={resolveIconName(node.type)}
-                  size={10}
-                  className="sm:w-3 sm:h-3"
+                  name={iconName}
+                  size={16}
                 />
-                <span className="truncate max-w-16 sm:max-w-20">
-                  {node.name?.replace(/^@n8n\/n8n-nodes-base\./, '') || node.type?.replace(/^@n8n\/n8n-nodes-base\./, '')}
-                </span>
-              </span>
-            ))}
-            
-            {nodeCount > 3 && (
-              <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
-                +{nodeCount - 3} more
-              </span>
-            )}
-          </div>
+              </div>
+            );
+          })}
+          {nodeCount > 8 && (
+            <span className="text-xs text-gray-500 ml-1">
+              +{nodeCount - 8}
+            </span>
+          )}
         </div>
 
-        {/* Keywords tags */}
-        {workflow.seoMetadata?.keywords && workflow.seoMetadata.keywords.length > 0 && (
-          <div className="mb-3 sm:mb-4">
-            <div className="flex flex-wrap gap-1">
-              {workflow.seoMetadata.keywords.slice(0, 5).map((keyword: string, index: number) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors"
-                >
-                  #{keyword}
-                </span>
-              ))}
-              {workflow.seoMetadata.keywords.length > 5 && (
-                <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-xs text-gray-400">
-                  +{workflow.seoMetadata.keywords.length - 5} more
-                </span>
-              )}
-            </div>
-          </div>
+        {/* Description - truncated to 2 lines */}
+        {workflow.seoMetadata?.description && (
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+            {workflow.seoMetadata.description}
+          </p>
         )}
 
-        {/* Business value footer */}
-        {workflow.seoMetadata?.businessValue && (
-          <div className="pt-3 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm font-medium text-green-600 flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                {workflow.seoMetadata.businessValue}
-              </span>
-              <div className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors hidden sm:block">
-                Click to explore →
-              </div>
+        {/* Tags as pills */}
+        <div className="flex flex-wrap gap-1.5">
+          {/* Keywords as pills */}
+          {workflow.seoMetadata?.keywords?.slice(0, 4).map((keyword: string, index: number) => (
+            <span
+              key={index}
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-50 text-gray-600 border border-gray-200"
+            >
+              {keyword}
+            </span>
+          ))}
+        </div>
+
+        {/* Footer with creator info */}
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="flex-shrink-0">
+              {user.avatar ? (
+                <Image 
+                  src={user.avatar} 
+                  alt={user.name}
+                  width={20}
+                  height={20}
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-xs font-medium text-gray-600">
+                    {user.initials?.charAt(0)}
+                  </span>
+                </div>
+              )}
             </div>
+            <span className="text-xs text-gray-500 truncate max-w-[120px]">
+              {user.name}
+            </span>
           </div>
-        )}
+          <span className="text-xs text-gray-400">
+            {new Date(workflow.updated_at).toLocaleDateString()}
+          </span>
+        </div>
       </div>
     </div>
   )

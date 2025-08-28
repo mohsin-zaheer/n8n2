@@ -25,7 +25,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`antialiased overflow-x-hidden`}
+        className={`antialiased`}
       >
         {/* Google Analytics */}
         <Script

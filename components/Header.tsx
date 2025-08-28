@@ -81,11 +81,15 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
 
   return (
     <header className={headerClass}>
-      <div className="max-w-screen-lg mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-screen-xl mx-auto px-4 py-3 flex items-center justify-between">
         <div >
           <Link
             href="/"
-            className={`text-base sm:text-lg font-bold tracking-tight hover:opacity-80 ${styles.logo} transition-opacity`}
+            className={cn(
+              "text-base sm:text-lg font-bold tracking-tight hover:opacity-80 transition-opacity",
+              styles.logo,
+              computedVariant === "landing" && !isScrolled ? "text-white" : "text-neutral-900"
+            )}
           >
           <Icon icon="solar:ghost-bold" style={{fontSize: '28px'}}  />
             n8n Growth Agents
@@ -94,12 +98,34 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
 
         {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-4 text-sm">
+          {/* Build your growth agent button */}
+          <Link
+            href="/"
+            className={cn(
+              "flex items-center gap-2 px-3 py-1 border rounded-md font-semibold transition-all hover:opacity-80",
+              computedVariant === "landing" && !isScrolled
+                ? "border-white text-white"
+                : computedVariant === "landing"
+                ? "border-neutral-900 text-neutral-900"
+                : "border-transparent text-white"
+            )}
+            style={computedVariant !== "landing" ? {
+              background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+            } : {}}
+          >
+            <Icon icon="mdi:rocket-launch" className="text-lg" />
+            <span>Build your growth agent</span>
+          </Link>
+
           {/* Directory dropdown */}
           <div className="relative inline-block group">
             <Link
               href="/directory"
               className={cn(
-                "flex items-center gap-2 px-3 py-1 border rounded-md font-semibold transition-all hover:opacity-80 border-neutral-900"
+                "flex items-center gap-2 px-3 py-1 border rounded-md font-semibold transition-all hover:opacity-80",
+                computedVariant === "landing" && !isScrolled 
+                  ? "bg-white text-neutral-900 border-white" 
+                  : "border-neutral-900 text-neutral-900"
               )}
               aria-haspopup="menu"
             >
@@ -161,6 +187,19 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                     More
                   </Link>
                 </li>
+                <li className="border-t mt-2 pt-2">
+                  <Link
+                    href="/directory"
+                    role="menuitem"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg transition-colors text-white"
+                    style={{ 
+                      background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+                    }}
+                  >
+                    <Icon icon="mdi:shield-check" className="text-xl shrink-0" />
+                    Vetted workflows
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
@@ -174,7 +213,10 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               <Button
                 onClick={handleLogin}
                 className={cn(
-                  "border-0 shadow-sm font-semibold transition-all bg-neutral-900 hover:bg-neutral-800 text-white"
+                  "border-0 shadow-sm font-semibold transition-all",
+                  computedVariant === "landing" && !isScrolled 
+                    ? "bg-white text-neutral-900 hover:bg-neutral-100"
+                    : "bg-neutral-900 hover:bg-neutral-800 text-white"
                 )}
                 size="sm"
               >
@@ -186,7 +228,10 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
 
         {/* Mobile hamburger */}
         <button
-          className="sm:hidden p-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(27,200,140)]"
+          className={cn(
+            "sm:hidden p-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(27,200,140)]",
+            computedVariant === "landing" && !isScrolled ? "text-white" : "text-neutral-900"
+          )}
           aria-label="Open menu"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(true)}
@@ -291,6 +336,19 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                   >
                     <Icon icon="mdi:dots-horizontal-circle" className="text-lg shrink-0 navIco" />
                     More
+                  </Link>
+                </li>
+                <li className="mt-3">
+                  <Link
+                    href="/directory"
+                    onClick={closeMobile}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg transition-colors text-white"
+                    style={{ 
+                      background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+                    }}
+                  >
+                    <Icon icon="mdi:shield-check" className="text-lg shrink-0" />
+                    Vetted workflows
                   </Link>
                 </li>
               </ul>

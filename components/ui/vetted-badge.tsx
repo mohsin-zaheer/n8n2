@@ -9,16 +9,16 @@ export function VettedBadge({ className }: VettedBadgeProps = {}) {
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5",
-        "bg-gradient-to-r from-emerald-50 to-emerald-100",
-        "border border-emerald-500 rounded-full",
+        "inline-flex items-center gap-1.5 px-5 py-1.5",
+        "bg-emerald-500",
+        "rounded-full",
         "shadow-sm hover:shadow-md transition-all",
-        "hover:from-emerald-100 hover:to-emerald-200",
+        "hover:bg-emerald-600",
         className
       )}
     >
-      <i className="fa-solid fa-shield-check text-emerald-600" />
-      <span className="text-sm font-semibold text-emerald-700">
+      <i className="fa-solid fa-shield-check text-white" />
+      <span className="text-sm font-semibold text-white">
         Vetted Workflow
       </span>
     </div>
