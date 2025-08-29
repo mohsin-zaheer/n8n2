@@ -9,6 +9,7 @@ import { NodeIcon } from "@/components/ui/node-icon";
 import { resolveIconName } from "@/lib/icon-aliases";
 import { VettedBadge } from "@/components/ui/vetted-badge";
 import { Download, Import } from "lucide-react";
+import { loadCategories, getCategoryName, getSubcategoryName } from "@/lib/services/category-helper.service";
 
 // Generate metadata for SEO
 export async function generateMetadata({
@@ -93,6 +94,9 @@ export default async function WorkflowPublicPage({
 }: {
   params: { slug: string };
 }) {
+  // Load categories for display
+  await loadCategories();
+  
   // Fetch workflow data from Supabase
   const queries = getWorkflowQueries();
   const workflowData = await queries.findBySlug(params.slug);
@@ -164,14 +168,32 @@ export default async function WorkflowPublicPage({
                 </>
               )}
               {seo?.businessValue && (
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 flex items-center gap-2 flex-wrap">
                   <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
                     {seo.businessValue}
                   </span>
-                  {seo?.category && (
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      {seo.category}
-                    </span>
+                  
+                  {/* Show category hierarchy if available */}
+                  {seo?.category_id ? (
+                    <>
+                      <span className="px-3 py-1 text-white rounded-full text-sm font-medium"
+                        style={{background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'}}>
+                        {getCategoryName(seo.category_id)}
+                      </span>
+                      
+                      {seo?.subcategory_id && (
+                        <span className="px-3 py-1 bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)] rounded-full text-sm font-medium">
+                          {getSubcategoryName(seo.subcategory_id)}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    /* Fallback to old category field if no new data */
+                    seo?.category && (
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        {seo.category}
+                      </span>
+                    )
                   )}
                 </div>
               )}

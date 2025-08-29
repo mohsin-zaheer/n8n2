@@ -16,6 +16,7 @@ import type { NodeCardProps } from "@/components/NodeCard";
 import { Toast } from "@/components/Toast";
 import { resolveIconName } from "@/lib/icon-aliases";
 import { createClient } from "@/lib/supabase-client";
+import { N8NPulseLoader } from "@/components/ui/n8n-pulse-loader";
 
 /**
  * Workflow Status Page
@@ -737,62 +738,8 @@ export default function WorkflowStatusPage() {
             {phase === "discovery" && visibleCount === 0 && (
               <div className="mb-6 flex min-h-[300px] items-center justify-center">
                 <div className="flex flex-col items-center gap-6">
-                  {/* Main discovery animation */}
-                  <div className="relative">
-                    {/* Outer rotating ring */}
-                    <div className="absolute inset-0 w-32 h-32 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
-                    
-                    {/* Inner pulsing ring */}
-                    <div className="absolute inset-2 w-28 h-28 border-2 border-emerald-300 border-b-emerald-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
-                    
-                    {/* Central icon container */}
-                    <div className="w-32 h-32 flex items-center justify-center">
-                      {currentDiscoveryIcon && (
-                        <div className="w-16 h-16 transition-all duration-200 ease-in-out transform scale-100 hover:scale-110">
-                          <img
-                            src={`/demo-icons/icons/nodes/svgs/${currentDiscoveryIcon}.svg`}
-                            alt={currentDiscoveryIcon}
-                            className="w-full h-full object-contain filter drop-shadow-lg"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Floating mini icons around the main circle */}
-                    {discoveryIcons.slice(0, 8).map((iconName, index) => {
-                      const angle = (index * 45) * (Math.PI / 180); // 45 degrees apart
-                      const radius = 80;
-                      const x = Math.cos(angle) * radius;
-                      const y = Math.sin(angle) * radius;
-                      
-                      return (
-                        <div
-                          key={`${iconName}-${index}`}
-                          className="absolute w-8 h-8 opacity-30 animate-pulse"
-                          style={{
-                            left: `calc(50% + ${x}px - 16px)`,
-                            top: `calc(50% + ${y}px - 16px)`,
-                            animationDelay: `${index * 0.2}s`,
-                            animationDuration: '2s'
-                          }}
-                        >
-                          <img
-                            src={`/demo-icons/icons/nodes/svgs/${iconName}.svg`}
-                            alt={iconName}
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.opacity = '0';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {/* n8n pulse animation */}
+                  <N8NPulseLoader size="xl" showRings={true} />
                   
                   <div className="text-center">
                     <h3 className="text-xl mt-3 font-semibold text-neutral-900 mb-2">

@@ -10,10 +10,14 @@ export interface WorkflowSEOMetadata {
   description: string;         // Meta description (150-160 chars)
   keywords: string[];          // 5-10 relevant search terms
   businessValue: string;       // Primary business outcome (2-4 words)
-  category: WorkflowCategory;  // Main workflow category
+  category: WorkflowCategory;  // Main workflow category (backward compatibility)
   integrations: string[];      // List of integrated services/platforms
   generatedAt: string;         // ISO timestamp of generation
   ogImage?: string;           // Optional OpenGraph image URL
+  
+  // New category hierarchy fields
+  category_id?: string;        // Category ID (e.g., "cat_1")
+  subcategory_id?: string;     // Subcategory ID (e.g., "cat_1_sub_2")
 }
 
 /**

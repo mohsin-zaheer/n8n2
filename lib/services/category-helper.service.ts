@@ -1,0 +1,126 @@
+/**
+ * Category Helper Service
+ * 
+ * Provides utilities for working with workflow categories
+ * Loads categories from database and caches them for performance
+ */
+
+import { createClient } from '@supabase/supabase-js';
+
+// Cache for categories to avoid repeated database calls
+let categoriesCache: Map<string, any> = new Map();
+let categoriesLoaded = false;
+
+/**
+ * Load all categories from database into cache
+ */
+export async function loadCategories(): Promise<Map<string, any>> {
+  // Return cached data if already loaded
+  if (categoriesLoaded && categoriesCache.size > 0) {
+    return categoriesCache;
+  }
+
+  try {
+    // Initialize Supabase client
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      return categoriesCache;
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Fetch all categories
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('level')
+      .order('display_order');
+    
+    if (error) {
+      console.error('Error loading categories:', error);
+      return categoriesCache;
+    }
+    
+    // Cache the categories
+    data?.forEach(cat => {
+      categoriesCache.set(cat.id, cat);
+    });
+    
+    categoriesLoaded = true;
+    console.log(`Loaded ${categoriesCache.size} categories into cache`);
+    
+    return categoriesCache;
+  } catch (error) {
+    console.error('Failed to load categories:', error);
+    return categoriesCache;
+  }
+}
+
+/**
+ * Get human-readable name for a category ID
+ */
+export function getCategoryName(categoryId: string | null | undefined): string {
+  if (!categoryId) return '';
+  
+  const category = categoriesCache.get(categoryId);
+  return category?.name || '';
+}
+
+/**
+ * Get human-readable name for a subcategory ID
+ */
+export function getSubcategoryName(subcategoryId: string | null | undefined): string {
+  if (!subcategoryId) return '';
+  
+  const subcategory = categoriesCache.get(subcategoryId);
+  return subcategory?.name || '';
+}
+
+/**
+ * Get all top-level categories (level 0)
+ */
+export function getTopLevelCategories(): Array<{id: string, name: string}> {
+  const categories: Array<{id: string, name: string}> = [];
+  
+  categoriesCache.forEach((cat, id) => {
+    if (cat.level === 0) {
+      categories.push({ id, name: cat.name });
+    }
+  });
+  
+  return categories.sort((a, b) => {
+    const orderA = categoriesCache.get(a.id)?.display_order || 999;
+    const orderB = categoriesCache.get(b.id)?.display_order || 999;
+    return orderA - orderB;
+  });
+}
+
+/**
+ * Get subcategories for a given parent category
+ */
+export function getSubcategories(parentCategoryId: string): Array<{id: string, name: string}> {
+  const subcategories: Array<{id: string, name: string}> = [];
+  
+  categoriesCache.forEach((cat, id) => {
+    if (cat.parent_id === parentCategoryId) {
+      subcategories.push({ id, name: cat.name });
+    }
+  });
+  
+  return subcategories.sort((a, b) => {
+    const orderA = categoriesCache.get(a.id)?.display_order || 999;
+    const orderB = categoriesCache.get(b.id)?.display_order || 999;
+    return orderA - orderB;
+  });
+}
+
+/**
+ * Initialize categories on module load for server-side rendering
+ */
+if (typeof window === 'undefined') {
+  // Server-side: load categories immediately
+  loadCategories().catch(console.error);
+}

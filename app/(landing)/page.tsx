@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase-client";
 import { nanoid } from "nanoid";
 import { NodeIcon } from "@/components/ui/node-icon";
+import { N8NPulseLoader } from "@/components/ui/n8n-pulse-loader";
 
 const outcomes: { label: string; prompt: string }[] = [
   {
@@ -232,17 +233,10 @@ export default function Home() {
       <div className="min-h-[calc(100vh-60px)]">
         <section className="relative overflow-hidden pt-6 sm:pt-10 md:pt-14">
           <div className="max-w-screen-xl mx-auto px-4 py-8">
-            <div className="max-w-4xl mx-auto card text-center p-10 sm:p-12 border border-white/20 bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl">
+            <div className="max-w-4xl mx-auto card text-center p-10 sm:p-12 border-4 border-white bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl">
               <div className="relative animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                 <div className="flex justify-center">
-                  <div className="relative z-10">
-                    <div className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg border border-white/20 animate-pulse-slow">
-                      <NodeIcon name="n8n" size="xl" />
-                    </div>
-                    {/* Cool pulse rings */}
-                    <div className="absolute inset-0 w-20 h-20 rounded-full border-2 border-emerald-400/30 animate-ping"></div>
-                    <div className="absolute inset-0 w-20 h-20 rounded-full border-2 border-emerald-400/20 animate-ping" style={{ animationDelay: '0.5s' }}></div>
-                  </div>
+                  <N8NPulseLoader size="lg" showRings={true} className="z-10" />
                 </div>
                 
                 {/* Logo line that overlaps with n8n logo */}
@@ -304,7 +298,7 @@ export default function Home() {
                     className={`min-h-[120px] w-full resize-none bg-transparent border-0 focus:outline-none focus:ring-0 text-base leading-relaxed placeholder-neutral-400`}
                   />
                 </div>
-                <div className="mt-4 flex justify-center">
+                <div className="mt-4 flex flex-col items-center">
                   <Button
                     className="inline-flex items-center justify-center rounded-lg font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer px-6 py-3 text-base gap-2  bg-[rgb(27,200,140)] text-white border-white hover:bg-emerald-400 focus:ring-white"
                     onClick={onSubmit}
@@ -317,6 +311,9 @@ export default function Home() {
                         : "Starting..."
                       : "Start"}
                   </Button>
+                  <a href="/directory" className="mt-3 text-sm text-neutral-500 hover:text-neutral-700 transition-colors">
+                    Or browse top workflows
+                  </a>
                 </div>
                 {error && (
                   <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg">

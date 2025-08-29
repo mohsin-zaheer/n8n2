@@ -10,6 +10,7 @@ import { WorkflowSEOMetadata } from '@/types/seo'
 import { VettedBadge } from '@/components/ui/vetted-badge'
 import { NodeIcon } from '@/components/ui/node-icon'
 import { resolveIconName } from '@/lib/icon-aliases'
+import { loadCategories, getCategoryName, getSubcategoryName, getTopLevelCategories } from '@/lib/services/category-helper.service'
 
 interface WorkflowSearchResult {
   session_id: string;
@@ -35,6 +36,7 @@ const WorkflowDirectoryContent = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'recent' | 'popular'>('relevance')
   const [currentPage, setCurrentPage] = useState(1)
+  const [dynamicCategories, setDynamicCategories] = useState<Array<{id: string, name: string}>>([])
   const itemsPerPage = 10
 
   // Initialize filters from URL parameters
@@ -50,6 +52,16 @@ const WorkflowDirectoryContent = () => {
       setSearchQuery(searchParam)
     }
   }, [searchParams])
+
+  // Load categories on component mount
+  useEffect(() => {
+    const initCategories = async () => {
+      await loadCategories();
+      const topLevel = getTopLevelCategories();
+      setDynamicCategories(topLevel);
+    };
+    initCategories();
+  }, []);
 
   // Load workflows on component mount
   useEffect(() => {
@@ -146,10 +158,11 @@ const WorkflowDirectoryContent = () => {
       })
     }
 
-    // Apply category filter
+    // Apply category filter (now using category_id)
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(workflow => 
-        workflow.seoMetadata?.category === selectedCategory
+        workflow.seoMetadata?.category_id === selectedCategory ||
+        workflow.seoMetadata?.category === selectedCategory // Fallback for old data
       )
     }
 
@@ -182,18 +195,10 @@ const WorkflowDirectoryContent = () => {
     setCurrentPage(1)
   }, [searchQuery, selectedCategory, sortBy])
 
+  // Build categories list for dropdown
   const categories = [
-    'all',
-    'Data Integration',
-    'Communication',
-    'Analytics',
-    'Automation',
-    'Security',
-    'DevOps',
-    'Sales',
-    'Marketing',
-    'Monitoring',
-    'Lead Generation'
+    { id: 'all', name: 'All Categories' },
+    ...dynamicCategories
   ]
 
   return (
@@ -242,8 +247,8 @@ const WorkflowDirectoryContent = () => {
                 className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
@@ -428,16 +433,36 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
       onClick={handleCardClick}
     >
       <div className="p-4 sm:p-5">
-        {/* Top Pills - Category and Vetted */}
+        {/* Top Pills - Category hierarchy and Vetted */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {/* Main category in green pill */}
-          {workflow.seoMetadata?.category && (
+          {/* Category hierarchy pills - only show if new data exists */}
+          {workflow.seoMetadata?.category_id && (
+            <>
+              {/* Main category in green gradient pill */}
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
+                background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+              }}>
+                {getCategoryName(workflow.seoMetadata.category_id)}
+              </span>
+              
+              {/* Subcategory - white with green border */}
+              {workflow.seoMetadata?.subcategory_id && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)]">
+                  {getSubcategoryName(workflow.seoMetadata.subcategory_id)}
+                </span>
+              )}
+            </>
+          )}
+          
+          {/* Fallback to old category field if no new data */}
+          {!workflow.seoMetadata?.category_id && workflow.seoMetadata?.category && (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
               background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
             }}>
               {workflow.seoMetadata.category}
             </span>
           )}
+          
           {/* Vetted badge */}
           {workflow.is_vetted && (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)]">

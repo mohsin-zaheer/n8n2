@@ -141,8 +141,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
             <div
               className="absolute left-0 mt-2 w-56 origin-top rounded-xl border bg-white/95 backdrop-blur shadow-xl ring-1 ring-black/5
                          opacity-0 invisible translate-y-1 scale-95 transition-all duration-200 z-50
-                         group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100
-                         dark:bg-neutral-900 dark:border-neutral-800"
+                         group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100"
               role="menu"
               aria-label="Directory menu"
             >
@@ -193,7 +192,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                     role="menuitem"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg transition-colors text-white"
                     style={{ 
-                      background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+                      background: 'rgb(27, 200, 140)'
                     }}
                   >
                     <Icon icon="mdi:shield-check" className="text-xl shrink-0" />
@@ -206,7 +205,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
 
           <div className="flex items-center h-8">
             {loading ? (
-              <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+              <div className="w-8 h-8 rounded-full bg-neutral-200 animate-pulse" />
             ) : user ? (
               <UserAvatar user={user} />
             ) : (
@@ -262,7 +261,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
         {/* Slide-in panel */}
         <div
           className={cn(
-            "absolute inset-y-0 right-0 w-80 max-w-[85vw] bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 shadow-xl p-4 flex flex-col transform transition-transform duration-300 ease-in-out",
+            "absolute inset-y-0 right-0 w-80 max-w-[85vw] bg-white text-neutral-900 shadow-xl p-4 flex flex-col transform transition-transform duration-300 ease-in-out",
             mobileOpen ? "translate-x-0" : "translate-x-full"
           )}
         >
@@ -297,7 +296,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                "grid-rows-[1fr] opacity-100"
               )}
             >
-              <ul className="min-h-0 overflow-hidden rounded-lg border dark:border-neutral-800 bg-white/95 dark:bg-neutral-900">
+              <ul className="min-h-0 overflow-hidden rounded-lg border bg-white/95">
                 <li>
                   <Link
                     href="/directory?search=lead"
@@ -344,7 +343,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
                     onClick={closeMobile}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg transition-colors text-white"
                     style={{ 
-                      background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+                      background: 'rgb(27, 200, 140)'
                     }}
                   >
                     <Icon icon="mdi:shield-check" className="text-lg shrink-0" />
@@ -356,14 +355,14 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
           </div>
 
           {/* Mobile footer: auth */}
-          <div className="mt-auto pt-4 border-t dark:border-neutral-800">
+          <div className="mt-auto pt-4 border-t">
             {loading ? (
-              <div className="w-9 h-9 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+              <div className="w-9 h-9 rounded-full bg-neutral-200 animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-3">
                 <div className="text-sm text-end">
                   <div className="font-semibold">{user.email}</div>
-                  <div className="text-neutral-500 dark:text-neutral-400">Signed in</div>
+                  <div className="text-neutral-500">Signed in</div>
                 </div>
                 <UserAvatar user={user} />
               </div>
