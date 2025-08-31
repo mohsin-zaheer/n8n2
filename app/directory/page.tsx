@@ -387,10 +387,7 @@ const WorkflowDirectoryContent = () => {
       </div>
     </div>
   )
-})
-
-// Add display name for debugging
-WorkflowCard.displayName = 'WorkflowCard'
+}
 
 // Skeleton loading component
 const WorkflowCardSkeleton = () => (
@@ -644,7 +641,10 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       </div>
     </div>
   )
-}
+})
+
+// Add display name for debugging
+WorkflowCard.displayName = 'WorkflowCard'
 
 const WorkflowDirectoryPage = () => {
   return (
