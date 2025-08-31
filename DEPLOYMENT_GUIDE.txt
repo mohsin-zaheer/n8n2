@@ -186,75 +186,164 @@ pm2 restart n8n-workflow-builder
 ### Install and Setup Local MCP Server
 The application will use a self-hosted MCP server for N8N workflow operations.
 
-### Clone and setup MCP server
-cd /var/www
-sudo git clone https://github.com/modelcontextprotocol/servers.git mcp-servers
-sudo chown -R $USER:$USER /var/www/mcp-servers
-cd mcp-servers
+### Create custom MCP server for N8N workflow operations
+mkdir -p /var/www/mcp-server
+cd /var/www/mcp-server
 
-### Install MCP server dependencies
-npm install
+### Initialize new Node.js project
+npm init -y
 
-### Create MCP server configuration
-mkdir -p /var/www/mcp-config
-nano /var/www/mcp-config/server.json
-
-### Add MCP server configuration:
-{
-  "mcpServers": {
-    "n8n": {
-      "command": "node",
-      "args": ["/var/www/mcp-servers/src/n8n/index.js"],
-      "env": {
-        "N8N_API_KEY": "your_n8n_api_key",
-        "N8N_BASE_URL": "https://your-n8n-instance.com"
-      }
-    }
-  },
-  "server": {
-    "port": 3001,
-    "host": "localhost",
-    "apiKey": "your_generated_mcp_api_key"
-  }
-}
+### Install required dependencies
+npm install express cors helmet morgan dotenv
 
 ### Generate a secure API key for MCP
 openssl rand -hex 32
 
-### Create MCP server startup script
-nano /var/www/mcp-config/start-mcp.js
+### Create MCP server implementation
+nano /var/www/mcp-server/server.js
 
-### Add startup script content:
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+### Add MCP server content:
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
 
-const configPath = '/var/www/mcp-config/server.json';
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const app = express();
+const PORT = process.env.PORT || 3001;
+const API_KEY = process.env.API_KEY || 'your_generated_mcp_api_key';
 
-const serverProcess = spawn('node', [
-  '/var/www/mcp-servers/src/server.js',
-  '--config', configPath
-], {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    PORT: config.server.port,
-    HOST: config.server.host,
-    API_KEY: config.server.apiKey
+// Middleware
+app.use(helmet());
+app.use(cors());
+app.use(morgan('combined'));
+app.use(express.json());
+
+// Authentication middleware
+const authenticate = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid authorization header' });
   }
+  
+  const token = authHeader.substring(7);
+  if (token !== API_KEY) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  next();
+};
+
+// Health check endpoint
+app.get('/health', authenticate, (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    services: {
+      mcp: 'running',
+      auth: 'enabled'
+    }
+  });
 });
 
-serverProcess.on('error', (err) => {
-  console.error('MCP Server error:', err);
+// MCP Tools endpoints
+app.post('/tools/search-nodes', authenticate, (req, res) => {
+  const { query, limit = 10, category } = req.body;
+  
+  // Mock response for now - replace with actual N8N node search logic
+  const mockNodes = [
+    {
+      nodeType: 'n8n-nodes-base.httpRequest',
+      displayName: 'HTTP Request',
+      description: 'Makes HTTP requests to any URL',
+      category: 'core',
+      relevance: 'high'
+    },
+    {
+      nodeType: 'n8n-nodes-base.webhook',
+      displayName: 'Webhook',
+      description: 'Receives HTTP requests',
+      category: 'trigger',
+      relevance: 'high'
+    },
+    {
+      nodeType: 'n8n-nodes-base.code',
+      displayName: 'Code',
+      description: 'Execute custom JavaScript code',
+      category: 'transform',
+      relevance: 'medium'
+    }
+  ];
+  
+  const filteredNodes = mockNodes.filter(node => 
+    !query || node.displayName.toLowerCase().includes(query.toLowerCase()) ||
+    node.description.toLowerCase().includes(query.toLowerCase())
+  ).slice(0, limit);
+  
+  res.json({
+    results: filteredNodes,
+    total: filteredNodes.length,
+    query: query || 'all'
+  });
 });
 
-serverProcess.on('exit', (code) => {
-  console.log(`MCP Server exited with code ${code}`);
+app.post('/tools/categorize-nodes', authenticate, (req, res) => {
+  const { nodes } = req.body;
+  
+  // Mock categorization response
+  res.json({
+    categorized: {
+      triggers: nodes?.filter(n => n.category === 'trigger') || [],
+      transforms: nodes?.filter(n => n.category === 'transform') || [],
+      outputs: nodes?.filter(n => n.category === 'output') || [],
+      inputs: nodes?.filter(n => n.category === 'input') || []
+    },
+    configurationStrategy: {
+      order: ['triggers', 'inputs', 'transforms', 'outputs'],
+      estimatedTokens: 1500
+    }
+  });
 });
+
+app.post('/tools/validate-workflow', authenticate, (req, res) => {
+  const { workflow } = req.body;
+  
+  // Mock validation response
+  res.json({
+    isValid: true,
+    errors: [],
+    warnings: [],
+    suggestions: ['Consider adding error handling nodes']
+  });
+});
+
+// Catch-all for unsupported endpoints
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+app.listen(PORT, 'localhost', () => {
+  console.log(`MCP Server running on http://localhost:${PORT}`);
+  console.log(`API Key: ${API_KEY.substring(0, 8)}...`);
+});
+
+### Create environment file for MCP server
+nano /var/www/mcp-server/.env
+
+### Add environment variables:
+PORT=3001
+API_KEY=your_generated_mcp_api_key_here
+NODE_ENV=production
 
 ### Start MCP server with PM2
-pm2 start /var/www/mcp-config/start-mcp.js --name "mcp-server"
+pm2 start /var/www/mcp-server/server.js --name "mcp-server" --env production
 
 ### Verify MCP configuration in environment:
 - MCP_SERVER_URL: Points to your local MCP server (http://localhost:3001)
@@ -265,6 +354,12 @@ pm2 start /var/www/mcp-config/start-mcp.js --name "mcp-server"
 curl -H "Authorization: Bearer your_generated_mcp_api_key" \
      -H "Content-Type: application/json" \
      http://localhost:3001/health
+
+### Test MCP tools endpoint:
+curl -X POST -H "Authorization: Bearer your_generated_mcp_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{"query": "http", "limit": 5}' \
+     http://localhost:3001/tools/search-nodes
 
 ### MCP Health Check via Application:
 Once deployed, test the MCP integration:
