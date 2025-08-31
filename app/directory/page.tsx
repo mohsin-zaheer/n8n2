@@ -288,7 +288,7 @@ const WorkflowDirectoryContent = () => {
 
             {/* Results Count */}
             <div className="text-sm text-gray-500 sm:ml-auto">
-              {loading ? 'Loading...' : `${filteredWorkflows.length} workflows found`}
+              {loading ? 'Loading...' : `${totalResults} workflows found`}
             </div>
           </div>
         </div>

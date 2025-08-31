@@ -319,6 +319,169 @@ export class WorkflowQueries {
   }
 
   /**
+   * Server-side search with filtering, sorting, and pagination
+   */
+  async searchWorkflows(options: {
+    query?: string;
+    category?: string;
+    sortBy?: 'relevance' | 'recent' | 'popular';
+    limit?: number;
+    offset?: number;
+  }): Promise<{ workflows: WorkflowBySlugResponse[]; total: number }> {
+    try {
+      const { query, category, sortBy = 'recent', limit = 10, offset = 0 } = options;
+
+      // Build the base query
+      let supabaseQuery = this.supabase
+        .from("workflow_sessions")
+        .select(`
+          session_id,
+          created_at,
+          updated_at,
+          state,
+          is_vetted,
+          user_id,
+          user_prompt,
+          is_active,
+          archived
+        `, { count: 'exact' })
+        .not("state", "is", null)
+        .neq("archived", true);
+
+      // Apply text search if query provided
+      if (query && query.trim()) {
+        // Search in multiple fields using OR conditions
+        supabaseQuery = supabaseQuery.or(`
+          state->seo->>title.ilike.%${query}%,
+          state->seo->>description.ilike.%${query}%,
+          state->workflow->settings->>name.ilike.%${query}%,
+          user_prompt.ilike.%${query}%
+        `);
+      }
+
+      // Apply category filter
+      if (category && category !== 'all') {
+        supabaseQuery = supabaseQuery.or(`
+          state->seo->>category_id.eq.${category},
+          state->seo->>category.eq.${category}
+        `);
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'recent':
+          supabaseQuery = supabaseQuery.order('updated_at', { ascending: false });
+          break;
+        case 'popular':
+          // For now, use vetted status as popularity indicator
+          supabaseQuery = supabaseQuery.order('is_vetted', { ascending: false })
+                                      .order('updated_at', { ascending: false });
+          break;
+        case 'relevance':
+        default:
+          // For relevance, we'll sort by updated_at for now
+          // In a real implementation, you'd use full-text search ranking
+          supabaseQuery = supabaseQuery.order('updated_at', { ascending: false });
+          break;
+      }
+
+      // Apply pagination
+      supabaseQuery = supabaseQuery.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await supabaseQuery;
+
+      if (error) {
+        console.error("Error searching workflows:", error);
+        return { workflows: [], total: 0 };
+      }
+
+      if (!data || data.length === 0) {
+        return { workflows: [], total: count || 0 };
+      }
+
+      // Transform results
+      const workflows = await Promise.all(
+        data.map(async (row) => {
+          const state = row.state as any;
+          
+          if (!state) return null;
+
+          // Fetch user data if user_id exists
+          let user = null;
+          if (row.user_id) {
+            try {
+              if (typeof window === 'undefined') {
+                const { createServiceClient } = await import('@/lib/supabase');
+                const serviceSupabase = createServiceClient();
+                const { data: userData, error: userError } = await serviceSupabase.auth.admin.getUserById(row.user_id);
+                
+                if (!userError && userData.user) {
+                  const metaData = userData.user.user_metadata || {};
+                  user = {
+                    id: userData.user.id,
+                    email: userData.user.email,
+                    full_name: metaData.full_name || metaData.name || null,
+                    avatar_url: metaData.avatar_url || metaData.picture || null,
+                  };
+                }
+              } else {
+                const response = await fetch(`/api/users/${row.user_id}`);
+                if (response.ok) {
+                  user = await response.json();
+                }
+              }
+            } catch (userFetchError) {
+              console.error("Error fetching user data:", userFetchError);
+            }
+          }
+
+          // Extract workflow name
+          const workflowName = 
+            state.seo?.title ||
+            state.workflow?.settings?.name || 
+            state.settings?.name || 
+            (row.user_prompt && row.user_prompt.length > 50 ? row.user_prompt.slice(0, 50) + '...' : row.user_prompt) ||
+            'Untitled Workflow';
+
+          return {
+            sessionId: row.session_id,
+            workflow: {
+              nodes: state.workflow?.nodes || state.nodes || [],
+              settings: state.workflow?.settings || state.settings || { name: workflowName },
+            },
+            seo: state.seo || {
+              slug: row.session_id,
+              title: workflowName,
+              description: row.user_prompt || state.userPrompt || 'Automated workflow',
+              keywords: [],
+              businessValue: 'Automation',
+              category: 'Automation' as any,
+              integrations: [],
+              generatedAt: row.created_at
+            },
+            configAnalysis: state.configAnalysis,
+            userPrompt: row.user_prompt || state.userPrompt || "",
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            isVetted: row.is_vetted || false,
+            user: user,
+          };
+        })
+      );
+
+      const filteredWorkflows = workflows.filter(Boolean) as WorkflowBySlugResponse[];
+
+      return {
+        workflows: filteredWorkflows,
+        total: count || 0
+      };
+    } catch (error) {
+      console.error("Error searching workflows:", error);
+      return { workflows: [], total: 0 };
+    }
+  }
+
+  /**
    * Check if a slug already exists
    * Useful for ensuring unique slugs
    */
