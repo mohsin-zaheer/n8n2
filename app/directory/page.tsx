@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react'
+import React, { useState, useEffect, useMemo, Suspense, useCallback, memo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Search, Filter, X, Clock, Users, Zap, User } from 'lucide-react'
@@ -8,7 +8,6 @@ import { WorkflowQueries } from '@/lib/db/workflow-queries'
 import { WorkflowState } from '@/lib/db/types'
 import { WorkflowSEOMetadata } from '@/types/seo'
 import { VettedBadge } from '@/components/ui/vetted-badge'
-import { NodeIcon } from '@/components/ui/node-icon'
 import { resolveIconName } from '@/lib/icon-aliases'
 import { loadCategories, getCategoryName, getSubcategoryName, getTopLevelCategories } from '@/lib/services/category-helper.service'
 
@@ -28,9 +27,27 @@ interface WorkflowSearchResult {
   } | null;
 }
 
+// Custom hook for debounced search
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 const WorkflowDirectoryContent = () => {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [workflows, setWorkflows] = useState<WorkflowSearchResult[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -107,13 +124,13 @@ const WorkflowDirectoryContent = () => {
     loadWorkflows()
   }, [])
 
-  // Search and filter logic
+  // Search and filter logic with debounced search
   const filteredWorkflows = useMemo(() => {
     let filtered = workflows
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
+    // Apply search filter with debounced query
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase()
       filtered = filtered.filter(workflow => {
         // Search in title
         const titleMatch = workflow.state?.settings?.name?.toLowerCase().includes(query)
@@ -182,7 +199,7 @@ const WorkflowDirectoryContent = () => {
     })
 
     return filtered
-  }, [workflows, searchQuery, selectedCategory, sortBy])
+  }, [workflows, debouncedSearchQuery, selectedCategory, sortBy])
 
   // Pagination logic
   const totalPages = Math.ceil(filteredWorkflows.length / itemsPerPage)
@@ -278,10 +295,11 @@ const WorkflowDirectoryContent = () => {
         {/* Results - Grid layout on larger screens */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {loading ? (
-            <div className="col-span-full text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-500 text-sm sm:text-base">Loading workflows...</p>
-            </div>
+            <>
+              {[...Array(6)].map((_, i) => (
+                <WorkflowCardSkeleton key={i} />
+              ))}
+            </>
           ) : filteredWorkflows.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -369,7 +387,42 @@ const WorkflowDirectoryContent = () => {
       </div>
     </div>
   )
-}
+})
+
+// Add display name for debugging
+WorkflowCard.displayName = 'WorkflowCard'
+
+// Skeleton loading component
+const WorkflowCardSkeleton = () => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+    <div className="p-4 sm:p-5">
+      <div className="flex gap-2 mb-3">
+        <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+        <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+      </div>
+      <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+      <div className="flex gap-1 mb-3">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="w-6 h-6 bg-gray-200 rounded"></div>
+        ))}
+      </div>
+      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-2/3 mb-3"></div>
+      <div className="flex gap-1.5 mb-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-5 bg-gray-200 rounded-full w-12"></div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+          <div className="h-3 bg-gray-200 rounded w-16"></div>
+        </div>
+        <div className="h-3 bg-gray-200 rounded w-12"></div>
+      </div>
+    </div>
+  </div>
+)
 
 // Helper function to extract base node name from full type
 const extractNodeBaseName = (nodeType: string): string => {
@@ -379,8 +432,8 @@ const extractNodeBaseName = (nodeType: string): string => {
   return parts[parts.length - 1] || nodeType;
 }
 
-// Workflow Card Component
-const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }) => {
+// Workflow Card Component - Memoized for performance
+const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workflow }) => {
   const nodeCount = workflow.state?.nodes?.length || 0
   const mainNodes = workflow.state?.nodes?.slice(0, 8) || []
   
@@ -480,17 +533,56 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = ({ workflow }
         <div className="flex items-center gap-1 mb-3 overflow-hidden">
           {mainNodes.map((node: any, index: number) => {
             const baseName = extractNodeBaseName(node.type);
-            const iconName = resolveIconName(baseName);
+            
+            // Create a simple fallback icon based on node name
+            const getNodeIcon = (name: string) => {
+              const lowerName = name.toLowerCase();
+              
+              // Map common node types to Font Awesome icons
+              if (lowerName.includes('google')) return 'fab fa-google';
+              if (lowerName.includes('slack')) return 'fab fa-slack';
+              if (lowerName.includes('twitter')) return 'fab fa-twitter';
+              if (lowerName.includes('linkedin')) return 'fab fa-linkedin';
+              if (lowerName.includes('facebook')) return 'fab fa-facebook';
+              if (lowerName.includes('github')) return 'fab fa-github';
+              if (lowerName.includes('dropbox')) return 'fab fa-dropbox';
+              if (lowerName.includes('shopify')) return 'fab fa-shopify';
+              if (lowerName.includes('stripe')) return 'fab fa-stripe';
+              if (lowerName.includes('paypal')) return 'fab fa-paypal';
+              if (lowerName.includes('microsoft')) return 'fab fa-microsoft';
+              if (lowerName.includes('apple')) return 'fab fa-apple';
+              if (lowerName.includes('amazon')) return 'fab fa-amazon';
+              if (lowerName.includes('calendar')) return 'fas fa-calendar';
+              if (lowerName.includes('email') || lowerName.includes('mail')) return 'fas fa-envelope';
+              if (lowerName.includes('http') || lowerName.includes('webhook')) return 'fas fa-globe';
+              if (lowerName.includes('database') || lowerName.includes('sql')) return 'fas fa-database';
+              if (lowerName.includes('file') || lowerName.includes('csv')) return 'fas fa-file';
+              if (lowerName.includes('note') || lowerName.includes('sticky')) return 'fas fa-sticky-note';
+              if (lowerName.includes('ai') || lowerName.includes('openai') || lowerName.includes('gpt')) return 'fas fa-robot';
+              if (lowerName.includes('schedule') || lowerName.includes('cron')) return 'fas fa-clock';
+              if (lowerName.includes('filter')) return 'fas fa-filter';
+              if (lowerName.includes('transform')) return 'fas fa-exchange-alt';
+              if (lowerName.includes('merge')) return 'fas fa-code-merge';
+              if (lowerName.includes('split')) return 'fas fa-code-branch';
+              if (lowerName.includes('wait')) return 'fas fa-pause';
+              if (lowerName.includes('condition') || lowerName.includes('if')) return 'fas fa-question';
+              if (lowerName.includes('loop')) return 'fas fa-sync';
+              if (lowerName.includes('start') || lowerName.includes('trigger')) return 'fas fa-play';
+              if (lowerName.includes('end') || lowerName.includes('stop')) return 'fas fa-stop';
+              
+              // Default fallback
+              return 'fas fa-cube';
+            };
+            
+            const iconClass = getNodeIcon(baseName);
+            
             return (
               <div 
                 key={index} 
-                className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-gray-50 rounded"
+                className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-gray-50 rounded border border-gray-200"
                 title={node.name || baseName}
               >
-                <NodeIcon
-                  name={iconName}
-                  size={16}
-                />
+                <i className={`${iconClass} text-xs text-gray-600`} />
               </div>
             );
           })}
