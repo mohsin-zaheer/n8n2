@@ -74,46 +74,72 @@ const WorkflowDirectoryContent = () => {
   // Load categories on component mount
   useEffect(() => {
     const initCategories = async () => {
-      await loadCategories();
-      const topLevel = getTopLevelCategories();
-      setDynamicCategories(topLevel);
+      try {
+        const response = await fetch('/api/workflows/categories')
+        if (response.ok) {
+          const categories = await response.json()
+          setDynamicCategories(categories)
+        } else {
+          // Fallback to client-side loading
+          await loadCategories();
+          const topLevel = getTopLevelCategories();
+          setDynamicCategories(topLevel);
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error)
+        // Fallback to client-side loading
+        await loadCategories();
+        const topLevel = getTopLevelCategories();
+        setDynamicCategories(topLevel);
+      }
     };
     initCategories();
   }, []);
 
-  // Load workflows on component mount
+  // Load workflows with server-side search
   useEffect(() => {
     const loadWorkflows = async () => {
       try {
         setLoading(true)
         
-        // Fetch real workflows from Supabase
-        const workflowQueries = new WorkflowQueries()
-        console.log('Fetching workflows from Supabase...')
-        const publicWorkflows = await workflowQueries.listPublicWorkflows(50)
-        console.log('Fetched workflows:', publicWorkflows.length, publicWorkflows)
+        // Use server-side search API
+        const params = new URLSearchParams({
+          q: debouncedSearchQuery,
+          category: selectedCategory,
+          sortBy,
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString()
+        })
+        
+        const response = await fetch(`/api/workflows/search?${params}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch workflows')
+        }
+        
+        const data = await response.json()
         
         // Transform the data to match our interface
-        const transformedWorkflows: WorkflowSearchResult[] = publicWorkflows.map(workflow => ({
-          session_id: workflow.sessionId,
-          created_at: workflow.createdAt,
-          updated_at: workflow.updatedAt,
-          is_vetted: workflow.isVetted,
+        const transformedWorkflows: WorkflowSearchResult[] = data.workflows.map((workflow: any) => ({
+          session_id: workflow.sessionId || workflow.session_id,
+          created_at: workflow.createdAt || workflow.created_at,
+          updated_at: workflow.updatedAt || workflow.updated_at,
+          is_vetted: workflow.isVetted || workflow.is_vetted,
           state: {
             phase: 'complete' as const,
-            nodes: workflow.workflow?.nodes || [],
+            nodes: workflow.workflow?.nodes || workflow.state?.nodes || [],
             connections: [],
-            settings: workflow.workflow?.settings || {},
+            settings: workflow.workflow?.settings || workflow.state?.settings || {},
             pendingClarifications: [],
             clarificationHistory: [],
             validations: { isValid: true }
           },
-          seoMetadata: workflow.seo,
+          seoMetadata: workflow.seo || workflow.seoMetadata,
           user: workflow.user
         }))
         
-        console.log('Transformed workflows:', transformedWorkflows.length, transformedWorkflows)
         setWorkflows(transformedWorkflows)
+        setTotalResults(data.total)
+        setTotalPages(data.totalPages)
       } catch (error) {
         console.error('Failed to load workflows:', error)
         setWorkflows([]) // Set empty array on error
@@ -123,7 +149,7 @@ const WorkflowDirectoryContent = () => {
     }
 
     loadWorkflows()
-  }, [])
+  }, [debouncedSearchQuery, selectedCategory, sortBy, currentPage])
 
   // Search and filter logic with debounced search
   const filteredWorkflows = useMemo(() => {
@@ -202,11 +228,13 @@ const WorkflowDirectoryContent = () => {
     return filtered
   }, [workflows, debouncedSearchQuery, selectedCategory, sortBy])
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredWorkflows.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentWorkflows = filteredWorkflows.slice(startIndex, endIndex)
+  // Since filtering is now done server-side, we can use workflows directly
+  const filteredWorkflows = workflows
+  const currentWorkflows = workflows
+  
+  // Pagination info will come from the API response
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalResults, setTotalResults] = useState(0)
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -324,7 +352,7 @@ const WorkflowDirectoryContent = () => {
               {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
                   <div className="text-sm text-gray-500">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredWorkflows.length)} of {filteredWorkflows.length} workflows
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalResults)} of {totalResults} workflows
                   </div>
                   
                   <div className="flex items-center gap-2">
