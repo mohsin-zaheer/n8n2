@@ -437,31 +437,46 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       <div className="p-4 sm:p-5">
         {/* Top Pills - Category hierarchy and Vetted */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {/* Category hierarchy pills - only show if new data exists */}
-          {workflow.seoMetadata?.category_id && (
-            <>
-              {/* Main category in green gradient pill */}
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
-                background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
-              }}>
-                {getCategoryName(workflow.seoMetadata.category_id)}
-              </span>
-              
-              {/* Subcategory - white with green border */}
-              {workflow.seoMetadata?.subcategory_id && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)]">
-                  {getSubcategoryName(workflow.seoMetadata.subcategory_id)}
+          {/* Category hierarchy pills - only show if new data exists and has valid names */}
+          {workflow.seoMetadata?.category_id && (() => {
+            const categoryName = getCategoryName(workflow.seoMetadata.category_id);
+            return categoryName ? (
+              <>
+                {/* Main category in green gradient pill */}
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
+                  background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+                }}>
+                  {categoryName}
                 </span>
-              )}
-            </>
-          )}
+                
+                {/* Subcategory - white with green border */}
+                {workflow.seoMetadata?.subcategory_id && (() => {
+                  const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
+                  return subcategoryName ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)]">
+                      {subcategoryName}
+                    </span>
+                  ) : null;
+                })()}
+              </>
+            ) : null;
+          })()}
           
-          {/* Fallback to old category field if no new data */}
-          {!workflow.seoMetadata?.category_id && workflow.seoMetadata?.category && (
+          {/* Fallback to old category field if no new data or invalid category_id */}
+          {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
               background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
             }}>
               {workflow.seoMetadata.category}
+            </span>
+          )}
+          
+          {/* Default category if no category data at all */}
+          {!workflow.seoMetadata?.category_id && !workflow.seoMetadata?.category && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
+              background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+            }}>
+              Automation
             </span>
           )}
           
