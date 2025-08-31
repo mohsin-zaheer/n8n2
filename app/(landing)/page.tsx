@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase-client";
 import { nanoid } from "nanoid";
-import { NodeIcon } from "@/components/ui/node-icon";
 import { N8NPulseLoader } from "@/components/ui/n8n-pulse-loader";
 
 const outcomes: { label: string; prompt: string }[] = [
@@ -241,38 +240,38 @@ export default function Home() {
                 
                 {/* Logo line that overlaps with n8n logo */}
                 <div className="flex justify-center items-center gap-3 sm:gap-4 md:gap-5 -mt-6 px-4 opacity-60 grayscale">
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8">
-                    <NodeIcon name="slack" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center">
+                    <i className="fab fa-slack text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8">
-                    <NodeIcon name="hubspot" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center">
+                    <i className="fas fa-chart-line text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8">
-                    <NodeIcon name="googleDrive" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center">
+                    <i className="fab fa-google-drive text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden sm:block">
-                    <NodeIcon name="notion" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden sm:flex items-center justify-center">
+                    <i className="fas fa-sticky-note text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8">
-                    <NodeIcon name="linkedin" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center">
+                    <i className="fab fa-linkedin text-lg sm:text-xl text-gray-600" />
                   </div>
                   {/* Space reserved for n8n pulse */}
                   <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8"></div>
                   <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8"></div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden sm:block">
-                    <NodeIcon name="mailchimp" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden sm:flex items-center justify-center">
+                    <i className="fas fa-envelope text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden md:block">
-                    <NodeIcon name="airtable" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden md:flex items-center justify-center">
+                    <i className="fas fa-table text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden md:block">
-                    <NodeIcon name="shopify" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden md:flex items-center justify-center">
+                    <i className="fab fa-shopify text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden lg:block">
-                    <NodeIcon name="dropbox" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden lg:flex items-center justify-center">
+                    <i className="fab fa-dropbox text-lg sm:text-xl text-gray-600" />
                   </div>
-                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden lg:block">
-                    <NodeIcon name="segment" size="md" />
+                  <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 hidden lg:flex items-center justify-center">
+                    <i className="fas fa-chart-pie text-lg sm:text-xl text-gray-600" />
                   </div>
                 </div>
               </div>
