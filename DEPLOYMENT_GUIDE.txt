@@ -186,37 +186,52 @@ pm2 restart n8n-workflow-builder
 ### Install and Setup Local MCP Server
 The application will use a self-hosted MCP server for N8N workflow operations.
 
-### Create custom MCP server for N8N workflow operations
+### Install and setup N8N MCP Server
+The application will use the official n8n-mcp package for N8N workflow operations.
+
+### Create MCP server directory and configuration
 mkdir -p /var/www/mcp-server
 cd /var/www/mcp-server
 
-### Initialize new Node.js project
+### Initialize Node.js project for MCP server
 npm init -y
 
-### Install required dependencies
-npm install express cors helmet morgan dotenv
+### Install the official n8n-mcp package
+npm install -g n8n-mcp
 
-### Generate a secure API key for MCP
-openssl rand -hex 32
+### Create MCP server configuration file
+nano /var/www/mcp-server/mcp-config.json
 
-### Create MCP server implementation
-nano /var/www/mcp-server/server.js
+### Add MCP server configuration:
+{
+    "mcpServers": {
+        "n8n-mcp": {
+            "command": "npx",
+            "args": [
+                "n8n-mcp"
+            ],
+            "env": {
+                "MCP_MODE": "stdio",
+                "LOG_LEVEL": "error",
+                "DISABLE_CONSOLE_OUTPUT": "true"
+            }
+        }
+    }
+}
 
-### Add MCP server content:
+### Create MCP server wrapper script
+nano /var/www/mcp-server/mcp-wrapper.js
+
+### Add wrapper script content:
+const { spawn } = require('child_process');
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const API_KEY = process.env.API_KEY || 'your_generated_mcp_api_key';
+const API_KEY = process.env.MCP_API_KEY || 'your_generated_mcp_api_key';
 
-// Middleware
-app.use(helmet());
 app.use(cors());
-app.use(morgan('combined'));
 app.use(express.json());
 
 // Authentication middleware
@@ -242,95 +257,84 @@ app.get('/health', authenticate, (req, res) => {
     version: '1.0.0',
     services: {
       mcp: 'running',
-      auth: 'enabled'
+      'n8n-mcp': 'available'
     }
   });
 });
 
-// MCP Tools endpoints
-app.post('/tools/search-nodes', authenticate, (req, res) => {
-  const { query, limit = 10, category } = req.body;
-  
-  // Mock response for now - replace with actual N8N node search logic
-  const mockNodes = [
-    {
-      nodeType: 'n8n-nodes-base.httpRequest',
-      displayName: 'HTTP Request',
-      description: 'Makes HTTP requests to any URL',
-      category: 'core',
-      relevance: 'high'
+// Proxy MCP requests to n8n-mcp process
+let mcpProcess = null;
+
+function startMCPProcess() {
+  mcpProcess = spawn('npx', ['n8n-mcp'], {
+    env: {
+      ...process.env,
+      MCP_MODE: 'stdio',
+      LOG_LEVEL: 'error',
+      DISABLE_CONSOLE_OUTPUT: 'true'
     },
-    {
-      nodeType: 'n8n-nodes-base.webhook',
-      displayName: 'Webhook',
-      description: 'Receives HTTP requests',
-      category: 'trigger',
-      relevance: 'high'
-    },
-    {
-      nodeType: 'n8n-nodes-base.code',
-      displayName: 'Code',
-      description: 'Execute custom JavaScript code',
-      category: 'transform',
-      relevance: 'medium'
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+
+  mcpProcess.on('error', (err) => {
+    console.error('MCP Process error:', err);
+  });
+
+  mcpProcess.on('exit', (code) => {
+    console.log(`MCP Process exited with code ${code}`);
+    // Restart process if it crashes
+    setTimeout(startMCPProcess, 5000);
+  });
+}
+
+// MCP Tools endpoints - proxy to n8n-mcp
+app.post('/tools/:toolName', authenticate, async (req, res) => {
+  try {
+    if (!mcpProcess) {
+      return res.status(503).json({ error: 'MCP process not available' });
     }
-  ];
-  
-  const filteredNodes = mockNodes.filter(node => 
-    !query || node.displayName.toLowerCase().includes(query.toLowerCase()) ||
-    node.description.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, limit);
-  
-  res.json({
-    results: filteredNodes,
-    total: filteredNodes.length,
-    query: query || 'all'
-  });
+
+    const toolName = req.params.toolName;
+    const toolParams = req.body;
+
+    // Send request to MCP process
+    const request = {
+      method: 'tools/call',
+      params: {
+        name: toolName,
+        arguments: toolParams
+      }
+    };
+
+    mcpProcess.stdin.write(JSON.stringify(request) + '\n');
+
+    // Handle response (simplified - in production you'd want proper message handling)
+    let responseData = '';
+    const timeout = setTimeout(() => {
+      res.status(408).json({ error: 'Request timeout' });
+    }, 30000);
+
+    mcpProcess.stdout.once('data', (data) => {
+      clearTimeout(timeout);
+      try {
+        const response = JSON.parse(data.toString());
+        res.json(response);
+      } catch (err) {
+        res.status(500).json({ error: 'Invalid response from MCP process' });
+      }
+    });
+
+  } catch (error) {
+    console.error('MCP request error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.post('/tools/categorize-nodes', authenticate, (req, res) => {
-  const { nodes } = req.body;
-  
-  // Mock categorization response
-  res.json({
-    categorized: {
-      triggers: nodes?.filter(n => n.category === 'trigger') || [],
-      transforms: nodes?.filter(n => n.category === 'transform') || [],
-      outputs: nodes?.filter(n => n.category === 'output') || [],
-      inputs: nodes?.filter(n => n.category === 'input') || []
-    },
-    configurationStrategy: {
-      order: ['triggers', 'inputs', 'transforms', 'outputs'],
-      estimatedTokens: 1500
-    }
-  });
-});
-
-app.post('/tools/validate-workflow', authenticate, (req, res) => {
-  const { workflow } = req.body;
-  
-  // Mock validation response
-  res.json({
-    isValid: true,
-    errors: [],
-    warnings: [],
-    suggestions: ['Consider adding error handling nodes']
-  });
-});
-
-// Catch-all for unsupported endpoints
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+// Start MCP process
+startMCPProcess();
 
 app.listen(PORT, 'localhost', () => {
-  console.log(`MCP Server running on http://localhost:${PORT}`);
+  console.log(`MCP Server wrapper running on http://localhost:${PORT}`);
   console.log(`API Key: ${API_KEY.substring(0, 8)}...`);
 });
 
@@ -339,11 +343,14 @@ nano /var/www/mcp-server/.env
 
 ### Add environment variables:
 PORT=3001
-API_KEY=your_generated_mcp_api_key_here
+MCP_API_KEY=your_generated_mcp_api_key_here
 NODE_ENV=production
 
+### Generate a secure API key for MCP
+openssl rand -hex 32
+
 ### Start MCP server with PM2
-pm2 start /var/www/mcp-server/server.js --name "mcp-server" --env production
+pm2 start /var/www/mcp-server/mcp-wrapper.js --name "mcp-server" --env production
 
 ### Verify MCP configuration in environment:
 - MCP_SERVER_URL: Points to your local MCP server (http://localhost:3001)
@@ -360,6 +367,12 @@ curl -X POST -H "Authorization: Bearer your_generated_mcp_api_key" \
      -H "Content-Type: application/json" \
      -d '{"query": "http", "limit": 5}' \
      http://localhost:3001/tools/search-nodes
+
+### Install n8n-mcp globally for easier access
+npm install -g n8n-mcp
+
+### Test n8n-mcp directly (optional)
+npx n8n-mcp --help
 
 ### MCP Health Check via Application:
 Once deployed, test the MCP integration:
@@ -478,7 +491,11 @@ pm2 logs mcp-server
 pm2 restart mcp-server
 
 ### Update MCP server configuration
-nano /var/www/mcp-config/server.json
+nano /var/www/mcp-server/mcp-config.json
+pm2 restart mcp-server
+
+### Update n8n-mcp package
+npm update -g n8n-mcp
 pm2 restart mcp-server
 
 ### Monitor both services
