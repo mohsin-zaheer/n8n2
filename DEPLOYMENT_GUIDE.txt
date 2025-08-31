@@ -50,10 +50,9 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ANTHROPIC_API_KEY=your_anthropic_api_key
-SMITHERY_API_KEY=your_smithery_api_key
-MCP_SERVER_URL=https://server.smithery.ai/@vincentmcleese/n8n-mcp/mcp
-MCP_API_KEY=28d8026f-fad7-4bc6-87c5-9fcacba57fde
-MCP_PROFILE=intermediate-cuckoo-DIapDk
+MCP_SERVER_URL=http://localhost:3001
+MCP_API_KEY=your_generated_mcp_api_key
+MCP_PROFILE=default
 NEXTAUTH_SECRET=your_nextauth_secret
 NEXTAUTH_URL=https://yourdomain.com
 NODE_ENV=production
@@ -158,6 +157,7 @@ sudo certbot renew --dry-run
 sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
+sudo ufw allow 3001/tcp
 sudo ufw --force enable
 
 ### Check firewall status
@@ -181,20 +181,90 @@ npm install
 npm run build
 pm2 restart n8n-workflow-builder
 
-## Step 10: MCP Server Configuration
+## Step 10: MCP Server Setup and Configuration
 
-### Configure Smithery.ai MCP Connection
-The application uses Smithery.ai's hosted MCP service for N8N workflow operations.
+### Install and Setup Local MCP Server
+The application will use a self-hosted MCP server for N8N workflow operations.
+
+### Clone and setup MCP server
+cd /var/www
+sudo git clone https://github.com/modelcontextprotocol/servers.git mcp-servers
+sudo chown -R $USER:$USER /var/www/mcp-servers
+cd mcp-servers
+
+### Install MCP server dependencies
+npm install
+
+### Create MCP server configuration
+mkdir -p /var/www/mcp-config
+nano /var/www/mcp-config/server.json
+
+### Add MCP server configuration:
+{
+  "mcpServers": {
+    "n8n": {
+      "command": "node",
+      "args": ["/var/www/mcp-servers/src/n8n/index.js"],
+      "env": {
+        "N8N_API_KEY": "your_n8n_api_key",
+        "N8N_BASE_URL": "https://your-n8n-instance.com"
+      }
+    }
+  },
+  "server": {
+    "port": 3001,
+    "host": "localhost",
+    "apiKey": "your_generated_mcp_api_key"
+  }
+}
+
+### Generate a secure API key for MCP
+openssl rand -hex 32
+
+### Create MCP server startup script
+nano /var/www/mcp-config/start-mcp.js
+
+### Add startup script content:
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+const configPath = '/var/www/mcp-config/server.json';
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+const serverProcess = spawn('node', [
+  '/var/www/mcp-servers/src/server.js',
+  '--config', configPath
+], {
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    PORT: config.server.port,
+    HOST: config.server.host,
+    API_KEY: config.server.apiKey
+  }
+});
+
+serverProcess.on('error', (err) => {
+  console.error('MCP Server error:', err);
+});
+
+serverProcess.on('exit', (code) => {
+  console.log(`MCP Server exited with code ${code}`);
+});
+
+### Start MCP server with PM2
+pm2 start /var/www/mcp-config/start-mcp.js --name "mcp-server"
 
 ### Verify MCP configuration in environment:
-- MCP_SERVER_URL: Points to your Smithery.ai MCP endpoint
-- MCP_API_KEY: Your Smithery.ai API key for authentication
-- MCP_PROFILE: Your specific profile identifier
+- MCP_SERVER_URL: Points to your local MCP server (http://localhost:3001)
+- MCP_API_KEY: Your generated API key for authentication
+- MCP_PROFILE: Profile identifier (default)
 
 ### Test MCP connection:
-curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+curl -H "Authorization: Bearer your_generated_mcp_api_key" \
      -H "Content-Type: application/json" \
-     https://server.smithery.ai/@vincentmcleese/n8n-mcp/mcp/health
+     http://localhost:3001/health
 
 ### MCP Health Check via Application:
 Once deployed, test the MCP integration:
@@ -203,7 +273,7 @@ curl https://yourdomain.com/api/health
 This endpoint will verify:
 - Environment variables are properly set
 - MCP server connectivity
-- Authentication with Smithery.ai service
+- Authentication with local MCP service
 
 ## Step 11: Database Setup (if using Supabase)
 
@@ -250,9 +320,11 @@ free -h
 
 4. **MCP connection issues**
    - Verify MCP environment variables are set correctly
-   - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_MCP_API_KEY" MCP_SERVER_URL/health
+   - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_MCP_API_KEY" http://localhost:3001/health
+   - Check MCP server logs: pm2 logs mcp-server
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
-   - Ensure Smithery.ai service is operational
+   - Ensure local MCP server is running: pm2 status
+   - Restart MCP server if needed: pm2 restart mcp-server
 
 5. **Performance issues**
    - Monitor system resources: htop, free -h
@@ -290,9 +362,29 @@ free -h
 - [ ] Nginx configured and tested
 - [ ] Firewall configured
 - [ ] Database connected and accessible
+- [ ] MCP server installed and configured
+- [ ] MCP server running via PM2
 - [ ] MCP server connection verified
 - [ ] Health check endpoint responding (including MCP status)
 - [ ] Monitoring set up
 - [ ] Backup strategy implemented
 
-Your N8N Workflow Builder should now be successfully deployed and accessible at https://yourdomain.com
+Your N8N Workflow Builder should now be successfully deployed with a self-hosted MCP server and accessible at https://yourdomain.com
+
+## Additional MCP Server Management
+
+### View MCP server status
+pm2 status mcp-server
+
+### View MCP server logs
+pm2 logs mcp-server
+
+### Restart MCP server
+pm2 restart mcp-server
+
+### Update MCP server configuration
+nano /var/www/mcp-config/server.json
+pm2 restart mcp-server
+
+### Monitor both services
+pm2 monit
