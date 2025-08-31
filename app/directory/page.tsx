@@ -8,6 +8,7 @@ import { WorkflowQueries } from '@/lib/db/workflow-queries'
 import { WorkflowState } from '@/lib/db/types'
 import { WorkflowSEOMetadata } from '@/types/seo'
 import { VettedBadge } from '@/components/ui/vetted-badge'
+import { NodeIcon } from '@/components/ui/node-icon'
 import { resolveIconName } from '@/lib/icon-aliases'
 import { loadCategories, getCategoryName, getSubcategoryName, getTopLevelCategories } from '@/lib/services/category-helper.service'
 
@@ -530,56 +531,17 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
         <div className="flex items-center gap-1 mb-3 overflow-hidden">
           {mainNodes.map((node: any, index: number) => {
             const baseName = extractNodeBaseName(node.type);
-            
-            // Create a simple fallback icon based on node name
-            const getNodeIcon = (name: string) => {
-              const lowerName = name.toLowerCase();
-              
-              // Map common node types to Font Awesome icons
-              if (lowerName.includes('google')) return 'fab fa-google';
-              if (lowerName.includes('slack')) return 'fab fa-slack';
-              if (lowerName.includes('twitter')) return 'fab fa-twitter';
-              if (lowerName.includes('linkedin')) return 'fab fa-linkedin';
-              if (lowerName.includes('facebook')) return 'fab fa-facebook';
-              if (lowerName.includes('github')) return 'fab fa-github';
-              if (lowerName.includes('dropbox')) return 'fab fa-dropbox';
-              if (lowerName.includes('shopify')) return 'fab fa-shopify';
-              if (lowerName.includes('stripe')) return 'fab fa-stripe';
-              if (lowerName.includes('paypal')) return 'fab fa-paypal';
-              if (lowerName.includes('microsoft')) return 'fab fa-microsoft';
-              if (lowerName.includes('apple')) return 'fab fa-apple';
-              if (lowerName.includes('amazon')) return 'fab fa-amazon';
-              if (lowerName.includes('calendar')) return 'fas fa-calendar';
-              if (lowerName.includes('email') || lowerName.includes('mail')) return 'fas fa-envelope';
-              if (lowerName.includes('http') || lowerName.includes('webhook')) return 'fas fa-globe';
-              if (lowerName.includes('database') || lowerName.includes('sql')) return 'fas fa-database';
-              if (lowerName.includes('file') || lowerName.includes('csv')) return 'fas fa-file';
-              if (lowerName.includes('note') || lowerName.includes('sticky')) return 'fas fa-sticky-note';
-              if (lowerName.includes('ai') || lowerName.includes('openai') || lowerName.includes('gpt')) return 'fas fa-robot';
-              if (lowerName.includes('schedule') || lowerName.includes('cron')) return 'fas fa-clock';
-              if (lowerName.includes('filter')) return 'fas fa-filter';
-              if (lowerName.includes('transform')) return 'fas fa-exchange-alt';
-              if (lowerName.includes('merge')) return 'fas fa-code-merge';
-              if (lowerName.includes('split')) return 'fas fa-code-branch';
-              if (lowerName.includes('wait')) return 'fas fa-pause';
-              if (lowerName.includes('condition') || lowerName.includes('if')) return 'fas fa-question';
-              if (lowerName.includes('loop')) return 'fas fa-sync';
-              if (lowerName.includes('start') || lowerName.includes('trigger')) return 'fas fa-play';
-              if (lowerName.includes('end') || lowerName.includes('stop')) return 'fas fa-stop';
-              
-              // Default fallback
-              return 'fas fa-cube';
-            };
-            
-            const iconClass = getNodeIcon(baseName);
-            
+            const iconName = resolveIconName(baseName);
             return (
               <div 
                 key={index} 
-                className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-gray-50 rounded border border-gray-200"
+                className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-gray-50 rounded"
                 title={node.name || baseName}
               >
-                <i className={`${iconClass} text-xs text-gray-600`} />
+                <NodeIcon
+                  name={iconName}
+                  size={16}
+                />
               </div>
             );
           })}
