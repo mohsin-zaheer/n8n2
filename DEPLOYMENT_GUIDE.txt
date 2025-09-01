@@ -219,6 +219,7 @@ nano /var/www/mcp-server/mcp-config.json
     }
 }
 
+
 ### Create MCP server wrapper script
 nano /var/www/mcp-server/mcp-wrapper.js
 
