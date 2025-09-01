@@ -183,206 +183,166 @@ pm2 restart n8n-workflow-builder
 
 ## Step 10: MCP Server Setup and Configuration
 
-### Install and Setup Local MCP Server
-The application will use a self-hosted MCP server for N8N workflow operations.
+### Install and Setup czlonkowski/n8n-mcp Server
+The application will use the comprehensive czlonkowski/n8n-mcp server which provides:
+- 535+ n8n nodes with 99% property coverage
+- 90% documentation coverage including AI nodes
+- Smart validation and configuration tools
+- Pre-built database with optimized performance
 
-### Install and setup N8N MCP Server
-The application will use the official n8n-mcp package for N8N workflow operations.
+### Option 1: Docker Deployment (Recommended)
+This is the easiest and most reliable method for production deployment.
+
+### Pull the optimized Docker image
+docker pull ghcr.io/czlonkowski/n8n-mcp:latest
 
 ### Create MCP server directory and configuration
 mkdir -p /var/www/mcp-server
 cd /var/www/mcp-server
 
-### Initialize Node.js project for MCP server
-npm init -y
+### Create Docker Compose file for MCP server
+nano docker-compose.mcp.yml
 
-### Install the official n8n-mcp package
-npm install -g n8n-mcp
-
-### Create MCP server configuration file
-nano /var/www/mcp-server/mcp-config.json
-
-### Add MCP server configuration:
-{
-    "mcpServers": {
-        "n8n-mcp": {
-            "command": "npx",
-            "args": [
-                "n8n-mcp"
-            ],
-            "env": {
-                "MCP_MODE": "stdio",
-                "LOG_LEVEL": "error",
-                "DISABLE_CONSOLE_OUTPUT": "true"
-            }
-        }
-    }
-}
-
-
-### Create MCP server wrapper script
-nano /var/www/mcp-server/mcp-wrapper.js
-
-### Add wrapper script content:
-const { spawn } = require('child_process');
-const express = require('express');
-const cors = require('cors');
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-const API_KEY = process.env.MCP_API_KEY || 'your_generated_mcp_api_key';
-
-app.use(cors());
-app.use(express.json());
-
-// Authentication middleware
-const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid authorization header' });
-  }
-  
-  const token = authHeader.substring(7);
-  if (token !== API_KEY) {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
-  
-  next();
-};
-
-// Health check endpoint
-app.get('/health', authenticate, (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    services: {
-      mcp: 'running',
-      'n8n-mcp': 'available'
-    }
-  });
-});
-
-// Proxy MCP requests to n8n-mcp process
-let mcpProcess = null;
-
-function startMCPProcess() {
-  mcpProcess = spawn('npx', ['n8n-mcp'], {
-    env: {
-      ...process.env,
-      MCP_MODE: 'stdio',
-      LOG_LEVEL: 'error',
-      DISABLE_CONSOLE_OUTPUT: 'true'
-    },
-    stdio: ['pipe', 'pipe', 'pipe']
-  });
-
-  mcpProcess.on('error', (err) => {
-    console.error('MCP Process error:', err);
-  });
-
-  mcpProcess.on('exit', (code) => {
-    console.log(`MCP Process exited with code ${code}`);
-    // Restart process if it crashes
-    setTimeout(startMCPProcess, 5000);
-  });
-}
-
-// MCP Tools endpoints - proxy to n8n-mcp
-app.post('/tools/:toolName', authenticate, async (req, res) => {
-  try {
-    if (!mcpProcess) {
-      return res.status(503).json({ error: 'MCP process not available' });
-    }
-
-    const toolName = req.params.toolName;
-    const toolParams = req.body;
-
-    // Send request to MCP process
-    const request = {
-      method: 'tools/call',
-      params: {
-        name: toolName,
-        arguments: toolParams
-      }
-    };
-
-    mcpProcess.stdin.write(JSON.stringify(request) + '\n');
-
-    // Handle response (simplified - in production you'd want proper message handling)
-    let responseData = '';
-    const timeout = setTimeout(() => {
-      res.status(408).json({ error: 'Request timeout' });
-    }, 30000);
-
-    mcpProcess.stdout.once('data', (data) => {
-      clearTimeout(timeout);
-      try {
-        const response = JSON.parse(data.toString());
-        res.json(response);
-      } catch (err) {
-        res.status(500).json({ error: 'Invalid response from MCP process' });
-      }
-    });
-
-  } catch (error) {
-    console.error('MCP request error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Start MCP process
-startMCPProcess();
-
-app.listen(PORT, 'localhost', () => {
-  console.log(`MCP Server wrapper running on http://localhost:${PORT}`);
-  console.log(`API Key: ${API_KEY.substring(0, 8)}...`);
-});
+### Add Docker Compose configuration:
+version: '3.8'
+services:
+  n8n-mcp:
+    image: ghcr.io/czlonkowski/n8n-mcp:latest
+    container_name: n8n-mcp-server
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - MCP_MODE=http
+      - LOG_LEVEL=error
+      - DISABLE_CONSOLE_OUTPUT=true
+      - MCP_API_KEY=${MCP_API_KEY}
+      - PORT=3001
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 ### Create environment file for MCP server
-nano /var/www/mcp-server/.env
+nano .env
 
 ### Add environment variables:
-PORT=3001
 MCP_API_KEY=your_generated_mcp_api_key_here
-NODE_ENV=production
 
 ### Generate a secure API key for MCP
 openssl rand -hex 32
 
-### Start MCP server with PM2
-pm2 start /var/www/mcp-server/mcp-wrapper.js --name "mcp-server" --env production
+### Start MCP server with Docker Compose
+docker-compose -f docker-compose.mcp.yml up -d
 
-### Verify MCP configuration in environment:
-- MCP_SERVER_URL: Points to your local MCP server (http://localhost:3001)
-- MCP_API_KEY: Your generated API key for authentication
-- MCP_PROFILE: Profile identifier (default)
+### Option 2: Local Installation (Alternative)
+If you prefer to run without Docker:
 
-### Test MCP connection:
+### Clone the czlonkowski/n8n-mcp repository
+git clone https://github.com/czlonkowski/n8n-mcp.git /var/www/n8n-mcp
+cd /var/www/n8n-mcp
+
+### Install dependencies and build
+npm install
+npm run build
+npm run rebuild
+
+### Create environment file
+cp .env.example .env
+nano .env
+
+### Configure environment variables:
+MCP_MODE=http
+PORT=3001
+LOG_LEVEL=error
+DISABLE_CONSOLE_OUTPUT=true
+MCP_API_KEY=your_generated_mcp_api_key_here
+
+### Start with PM2
+pm2 start npm --name "n8n-mcp-server" -- run start:http
+
+### Verify MCP Server Installation
+Test the MCP server is running correctly:
+
+### Test health endpoint
 curl -H "Authorization: Bearer your_generated_mcp_api_key" \
      -H "Content-Type: application/json" \
      http://localhost:3001/health
 
-### Test MCP tools endpoint:
+### Test MCP tools endpoint (search nodes)
 curl -X POST -H "Authorization: Bearer your_generated_mcp_api_key" \
      -H "Content-Type: application/json" \
      -d '{"query": "http", "limit": 5}' \
-     http://localhost:3001/tools/search-nodes
+     http://localhost:3001/tools/search_nodes
 
-### Install n8n-mcp globally for easier access
-npm install -g n8n-mcp
+### Test essential node information
+curl -X POST -H "Authorization: Bearer your_generated_mcp_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{"nodeType": "n8n-nodes-base.httpRequest"}' \
+     http://localhost:3001/tools/get_node_essentials
 
-### Test n8n-mcp directly (optional)
-npx n8n-mcp --help
+### Configure Application Environment Variables
+Update your main application's .env.production file:
+
+### Required MCP configuration in .env.production:
+MCP_SERVER_URL=http://localhost:3001
+MCP_API_KEY=your_generated_mcp_api_key
+MCP_PROFILE=default
 
 ### MCP Health Check via Application:
-Once deployed, test the MCP integration:
+Once deployed, test the MCP integration through your application:
 curl https://yourdomain.com/api/health
 
 This endpoint will verify:
 - Environment variables are properly set
 - MCP server connectivity
-- Authentication with local MCP service
+- Authentication with czlonkowski/n8n-mcp service
+- Available MCP tools and capabilities
+
+### Available MCP Tools
+The czlonkowski/n8n-mcp server provides these powerful tools:
+
+Core Documentation Tools:
+- tools_documentation - Get documentation for any MCP tool
+- list_nodes - List all n8n nodes with filtering
+- get_node_info - Comprehensive node information
+- get_node_essentials - Essential properties only (10-20 vs 200+)
+- search_nodes - Full-text search across node documentation
+- search_node_properties - Find specific properties within nodes
+- get_node_documentation - Parsed documentation from n8n-docs
+
+Advanced Configuration Tools:
+- get_node_for_task - Pre-configured settings for common tasks
+- list_tasks - Discover available task templates
+- validate_node_operation - Validate node configurations
+- validate_node_minimal - Quick validation for required fields
+- validate_workflow - Complete workflow validation
+- validate_workflow_connections - Check workflow structure
+- validate_workflow_expressions - Validate n8n expressions
+
+AI Integration Tools:
+- list_ai_tools - List all AI-capable nodes
+- get_node_as_tool_info - Guidance for using nodes as AI tools
+
+### Monitor MCP Server
+Check MCP server status:
+
+### For Docker deployment:
+docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
+
+### For local installation:
+pm2 status n8n-mcp-server
+pm2 logs n8n-mcp-server
+
+### Restart MCP server if needed:
+# Docker
+docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
+
+# Local installation
+pm2 restart n8n-mcp-server
 
 ## Step 11: Database Setup (if using Supabase)
 
@@ -430,10 +390,17 @@ free -h
 4. **MCP connection issues**
    - Verify MCP environment variables are set correctly
    - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_MCP_API_KEY" http://localhost:3001/health
-   - Check MCP server logs: pm2 logs mcp-server
+   - Check MCP server logs:
+     * Docker: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
+     * Local: pm2 logs n8n-mcp-server
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
-   - Ensure local MCP server is running: pm2 status
-   - Restart MCP server if needed: pm2 restart mcp-server
+   - Ensure MCP server is running:
+     * Docker: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+     * Local: pm2 status n8n-mcp-server
+   - Restart MCP server if needed:
+     * Docker: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
+     * Local: pm2 restart n8n-mcp-server
+   - Test specific MCP tools: curl -X POST -H "Authorization: Bearer YOUR_MCP_API_KEY" -H "Content-Type: application/json" -d '{"query": "test"}' http://localhost:3001/tools/search_nodes
 
 5. **Performance issues**
    - Monitor system resources: htop, free -h
@@ -471,33 +438,83 @@ free -h
 - [ ] Nginx configured and tested
 - [ ] Firewall configured
 - [ ] Database connected and accessible
-- [ ] MCP server installed and configured
-- [ ] MCP server running via PM2
+- [ ] czlonkowski/n8n-mcp server installed and configured
+- [ ] MCP server running (Docker Compose or PM2)
 - [ ] MCP server connection verified
+- [ ] MCP tools functionality tested
 - [ ] Health check endpoint responding (including MCP status)
 - [ ] Monitoring set up
 - [ ] Backup strategy implemented
 
-Your N8N Workflow Builder should now be successfully deployed with a self-hosted MCP server and accessible at https://yourdomain.com
+Your N8N Workflow Builder should now be successfully deployed with the comprehensive czlonkowski/n8n-mcp server and accessible at https://yourdomain.com
+
+The czlonkowski/n8n-mcp server provides:
+- 535+ n8n nodes with comprehensive documentation
+- 99% property coverage with smart validation
+- AI-optimized tools for workflow building
+- Pre-built database for fast response times (~12ms average)
+- Advanced validation and configuration capabilities
 
 ## Additional MCP Server Management
 
 ### View MCP server status
-pm2 status mcp-server
+# For Docker deployment
+docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+
+# For local installation
+pm2 status n8n-mcp-server
 
 ### View MCP server logs
-pm2 logs mcp-server
+# For Docker deployment
+docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f n8n-mcp
+
+# For local installation
+pm2 logs n8n-mcp-server
 
 ### Restart MCP server
-pm2 restart mcp-server
+# For Docker deployment
+docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
 
-### Update MCP server configuration
-nano /var/www/mcp-server/mcp-config.json
-pm2 restart mcp-server
+# For local installation
+pm2 restart n8n-mcp-server
 
-### Update n8n-mcp package
-npm update -g n8n-mcp
-pm2 restart mcp-server
+### Update MCP server
+# For Docker deployment
+cd /var/www/mcp-server
+docker-compose -f docker-compose.mcp.yml pull
+docker-compose -f docker-compose.mcp.yml up -d
+
+# For local installation
+cd /var/www/n8n-mcp
+git pull origin main
+npm install
+npm run build
+npm run rebuild
+pm2 restart n8n-mcp-server
 
 ### Monitor both services
+# For Docker deployment
+docker stats n8n-mcp-server
+docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
+
+# For local installation
 pm2 monit
+
+### Test MCP server functionality
+# Test core tools
+curl -X POST -H "Authorization: Bearer your_mcp_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{}' \
+     http://localhost:3001/tools/tools_documentation
+
+# Test node search
+curl -X POST -H "Authorization: Bearer your_mcp_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{"query": "slack", "limit": 3}' \
+     http://localhost:3001/tools/search_nodes
+
+# Test node validation
+curl -X POST -H "Authorization: Bearer your_mcp_api_key" \
+     -H "Content-Type: application/json" \
+     -d '{"nodeType": "n8n-nodes-base.slack", "config": {"resource": "message", "operation": "send"}}' \
+     http://localhost:3001/tools/validate_node_minimal
