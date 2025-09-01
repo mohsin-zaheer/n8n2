@@ -269,18 +269,18 @@ docker-compose -f docker-compose.mcp.yml logs n8n-mcp
 Test the MCP server is running correctly:
 
 ### Test health endpoint
-curl -H "Authorization: Bearer your_generated_auth_token" \
+curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
      http://localhost:3001/health
 
 ### Test MCP tools endpoint (search nodes)
-curl -X POST -H "Authorization: Bearer your_generated_auth_token" \
+curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
      -d '{"query": "http", "limit": 5}' \
      http://localhost:3001/tools/search_nodes
 
 ### Test essential node information
-curl -X POST -H "Authorization: Bearer your_generated_auth_token" \
+curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
      -d '{"nodeType": "n8n-nodes-base.httpRequest"}' \
      http://localhost:3001/tools/get_node_essentials
@@ -290,8 +290,8 @@ Update your main application's .env.production file:
 
 ### Required MCP configuration in .env.production:
 MCP_SERVER_URL=http://localhost:3001
-MCP_API_KEY=your_generated_auth_token
-MCP_PROFILE=default
+MCP_API_KEY=28d8026f-fad7-4bc6-87c5-9fcacba57fde
+MCP_PROFILE=intermediate-cuckoo-DIapDk
 
 ### MCP Health Check via Application:
 Once deployed, test the MCP integration through your application:
@@ -470,19 +470,19 @@ docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
 
 ### Test MCP server functionality
 # Test core tools
-curl -X POST -H "Authorization: Bearer your_auth_token" \
+curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
      -d '{}' \
      http://localhost:3001/tools/tools_documentation
 
 # Test node search
-curl -X POST -H "Authorization: Bearer your_auth_token" \
+curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
      -d '{"query": "slack", "limit": 3}' \
      http://localhost:3001/tools/search_nodes
 
 # Test node validation
-curl -X POST -H "Authorization: Bearer your_auth_token" \
+curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
      -d '{"nodeType": "n8n-nodes-base.slack", "config": {"resource": "message", "operation": "send"}}' \
      http://localhost:3001/tools/validate_node_minimal
