@@ -200,8 +200,14 @@ sudo sh get-docker.sh
 ### Add user to docker group (optional, to run without sudo)
 sudo usermod -aG docker $USER
 
-### Install Docker Compose
+### Install Docker Compose V2 (recommended)
+# Docker Compose V2 is included with Docker Desktop, but for server installations:
 sudo apt update
+
+# Install Docker Compose V2 plugin (preferred method)
+sudo apt install docker-compose-plugin
+
+# Alternative: Install standalone docker-compose if needed
 sudo apt install docker-compose
 
 ### Start and enable Docker service
@@ -210,7 +216,8 @@ sudo systemctl enable docker
 
 ### Verify Docker installation
 docker --version
-docker-compose --version
+docker compose version
+# OR for older versions: docker-compose --version
 
 ### Pull the optimized Docker image
 docker pull ghcr.io/czlonkowski/n8n-mcp:latest
@@ -254,16 +261,22 @@ AUTH_TOKEN=your_generated_auth_token_here
 openssl rand -hex 32
 
 ### Start MCP server with Docker Compose
-docker-compose -f docker-compose.mcp.yml up -d
+# Try Docker Compose V2 first (recommended)
+docker compose -f docker-compose.mcp.yml up -d
+
+# If V2 fails, try V1 syntax
+# docker-compose -f docker-compose.mcp.yml up -d
 
 ### Verify Docker Compose started successfully
-docker-compose -f docker-compose.mcp.yml ps
+docker compose -f docker-compose.mcp.yml ps
+# OR: docker-compose -f docker-compose.mcp.yml ps
 
 ### Check if container is running and healthy
 docker ps | grep n8n-mcp-server
 
 ### If container is not running, check logs for errors
-docker-compose -f docker-compose.mcp.yml logs n8n-mcp
+docker compose -f docker-compose.mcp.yml logs n8n-mcp
+# OR: docker-compose -f docker-compose.mcp.yml logs n8n-mcp
 
 ### Verify MCP Server Installation
 Test the MCP server is running correctly:
@@ -332,11 +345,11 @@ AI Integration Tools:
 Check MCP server status:
 
 ### For Docker deployment:
-docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
-docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
+docker compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
 
 ### Restart MCP server if needed:
-docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
+docker compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
 
 ## Step 11: Database Setup (if using Supabase)
 
@@ -383,16 +396,18 @@ free -h
 
 4. **MCP connection issues**
    - Verify MCP environment variables are set correctly
-   - Check if Docker Compose service started: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+   - Check if Docker Compose service started: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
    - Check if container is running: docker ps | grep n8n-mcp-server
-   - Check container logs for errors: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
+   - Check container logs for errors: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
    - Verify port 3001 is listening: netstat -tlnp | grep 3001
    - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_AUTH_TOKEN" http://localhost:3001/health
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
-   - Restart MCP server if needed: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
+   - Restart MCP server if needed: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
    - Test specific MCP tools: curl -X POST -H "Authorization: Bearer YOUR_AUTH_TOKEN" -H "Content-Type: application/json" -d '{"query": "test"}' http://localhost:3001/tools/search_nodes
    - If container won't start, check Docker service: sudo systemctl status docker
-   - If Docker Compose file has issues, validate syntax: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml config
+   - If Docker Compose file has issues, validate syntax: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml config
+   - For ContainerConfig errors, try: docker system prune -a (removes unused images/containers)
+   - If using old docker-compose version, try: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml down --remove-orphans
 
 5. **Performance issues**
    - Monitor system resources: htop, free -h
@@ -451,22 +466,22 @@ The czlonkowski/n8n-mcp server provides:
 ## Additional MCP Server Management
 
 ### View MCP server status
-docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+docker compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
 
 ### View MCP server logs
-docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f n8n-mcp
+docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f n8n-mcp
 
 ### Restart MCP server
-docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
+docker compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
 
 ### Update MCP server
 cd /var/www/mcp-server
-docker-compose -f docker-compose.mcp.yml pull
-docker-compose -f docker-compose.mcp.yml up -d
+docker compose -f docker-compose.mcp.yml pull
+docker compose -f docker-compose.mcp.yml up -d
 
 ### Monitor MCP server
 docker stats n8n-mcp-server
-docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
+docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
 
 ### Test MCP server functionality
 # Test core tools
