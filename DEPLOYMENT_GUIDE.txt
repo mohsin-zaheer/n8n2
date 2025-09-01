@@ -256,6 +256,15 @@ openssl rand -hex 32
 ### Start MCP server with Docker Compose
 docker-compose -f docker-compose.mcp.yml up -d
 
+### Verify Docker Compose started successfully
+docker-compose -f docker-compose.mcp.yml ps
+
+### Check if container is running and healthy
+docker ps | grep n8n-mcp-server
+
+### If container is not running, check logs for errors
+docker-compose -f docker-compose.mcp.yml logs n8n-mcp
+
 ### Verify MCP Server Installation
 Test the MCP server is running correctly:
 
@@ -374,12 +383,16 @@ free -h
 
 4. **MCP connection issues**
    - Verify MCP environment variables are set correctly
+   - Check if Docker Compose service started: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+   - Check if container is running: docker ps | grep n8n-mcp-server
+   - Check container logs for errors: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
+   - Verify port 3001 is listening: netstat -tlnp | grep 3001
    - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_MCP_API_KEY" http://localhost:3001/health
-   - Check MCP server logs: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
-   - Ensure MCP server is running: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
    - Restart MCP server if needed: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
    - Test specific MCP tools: curl -X POST -H "Authorization: Bearer YOUR_MCP_API_KEY" -H "Content-Type: application/json" -d '{"query": "test"}' http://localhost:3001/tools/search_nodes
+   - If container won't start, check Docker service: sudo systemctl status docker
+   - If Docker Compose file has issues, validate syntax: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml config
 
 5. **Performance issues**
    - Monitor system resources: htop, free -h
