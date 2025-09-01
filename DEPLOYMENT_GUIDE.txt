@@ -190,8 +190,27 @@ The application will use the comprehensive czlonkowski/n8n-mcp server which prov
 - Smart validation and configuration tools
 - Pre-built database with optimized performance
 
-### Option 1: Docker Deployment (Recommended)
-This is the easiest and most reliable method for production deployment.
+### Install Docker and Docker Compose
+First, install Docker and Docker Compose if not already installed:
+
+### Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+### Add user to docker group (optional, to run without sudo)
+sudo usermod -aG docker $USER
+
+### Install Docker Compose
+sudo apt update
+sudo apt install docker-compose
+
+### Start and enable Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+### Verify Docker installation
+docker --version
+docker-compose --version
 
 ### Pull the optimized Docker image
 docker pull ghcr.io/czlonkowski/n8n-mcp:latest
@@ -236,32 +255,6 @@ openssl rand -hex 32
 
 ### Start MCP server with Docker Compose
 docker-compose -f docker-compose.mcp.yml up -d
-
-### Option 2: Local Installation (Alternative)
-If you prefer to run without Docker:
-
-### Clone the czlonkowski/n8n-mcp repository
-git clone https://github.com/czlonkowski/n8n-mcp.git /var/www/n8n-mcp
-cd /var/www/n8n-mcp
-
-### Install dependencies and build
-npm install
-npm run build
-npm run rebuild
-
-### Create environment file
-cp .env.example .env
-nano .env
-
-### Configure environment variables:
-MCP_MODE=http
-PORT=3001
-LOG_LEVEL=error
-DISABLE_CONSOLE_OUTPUT=true
-MCP_API_KEY=your_generated_mcp_api_key_here
-
-### Start with PM2
-pm2 start npm --name "n8n-mcp-server" -- run start:http
 
 ### Verify MCP Server Installation
 Test the MCP server is running correctly:
@@ -333,16 +326,8 @@ Check MCP server status:
 docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
 docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
 
-### For local installation:
-pm2 status n8n-mcp-server
-pm2 logs n8n-mcp-server
-
 ### Restart MCP server if needed:
-# Docker
 docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
-
-# Local installation
-pm2 restart n8n-mcp-server
 
 ## Step 11: Database Setup (if using Supabase)
 
@@ -390,16 +375,10 @@ free -h
 4. **MCP connection issues**
    - Verify MCP environment variables are set correctly
    - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_MCP_API_KEY" http://localhost:3001/health
-   - Check MCP server logs:
-     * Docker: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
-     * Local: pm2 logs n8n-mcp-server
+   - Check MCP server logs: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
-   - Ensure MCP server is running:
-     * Docker: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
-     * Local: pm2 status n8n-mcp-server
-   - Restart MCP server if needed:
-     * Docker: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
-     * Local: pm2 restart n8n-mcp-server
+   - Ensure MCP server is running: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
+   - Restart MCP server if needed: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
    - Test specific MCP tools: curl -X POST -H "Authorization: Bearer YOUR_MCP_API_KEY" -H "Content-Type: application/json" -d '{"query": "test"}' http://localhost:3001/tools/search_nodes
 
 5. **Performance issues**
@@ -438,8 +417,9 @@ free -h
 - [ ] Nginx configured and tested
 - [ ] Firewall configured
 - [ ] Database connected and accessible
+- [ ] Docker and Docker Compose installed
 - [ ] czlonkowski/n8n-mcp server installed and configured
-- [ ] MCP server running (Docker Compose or PM2)
+- [ ] MCP server running via Docker Compose
 - [ ] MCP server connection verified
 - [ ] MCP tools functionality tested
 - [ ] Health check endpoint responding (including MCP status)
@@ -458,47 +438,22 @@ The czlonkowski/n8n-mcp server provides:
 ## Additional MCP Server Management
 
 ### View MCP server status
-# For Docker deployment
 docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
 
-# For local installation
-pm2 status n8n-mcp-server
-
 ### View MCP server logs
-# For Docker deployment
 docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f n8n-mcp
 
-# For local installation
-pm2 logs n8n-mcp-server
-
 ### Restart MCP server
-# For Docker deployment
 docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
 
-# For local installation
-pm2 restart n8n-mcp-server
-
 ### Update MCP server
-# For Docker deployment
 cd /var/www/mcp-server
 docker-compose -f docker-compose.mcp.yml pull
 docker-compose -f docker-compose.mcp.yml up -d
 
-# For local installation
-cd /var/www/n8n-mcp
-git pull origin main
-npm install
-npm run build
-npm run rebuild
-pm2 restart n8n-mcp-server
-
-### Monitor both services
-# For Docker deployment
+### Monitor MCP server
 docker stats n8n-mcp-server
 docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
-
-# For local installation
-pm2 monit
 
 ### Test MCP server functionality
 # Test core tools
