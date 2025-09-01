@@ -286,17 +286,24 @@ curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
      http://localhost:3001/health
 
-### Test MCP tools endpoint (search nodes)
-curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+### Test MCP endpoint information
+curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
-     -d '{"query": "http", "limit": 5}' \
-     http://localhost:3001/tools/search_nodes
+     http://localhost:3001/mcp
 
-### Test essential node information
+### Test MCP JSON-RPC protocol (example tool call)
 curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
-     -d '{"nodeType": "n8n-nodes-base.httpRequest"}' \
-     http://localhost:3001/tools/get_node_essentials
+     -d '{
+       "jsonrpc": "2.0",
+       "id": 1,
+       "method": "tools/call",
+       "params": {
+         "name": "search_nodes",
+         "arguments": {"query": "http", "limit": 5}
+       }
+     }' \
+     http://localhost:3001/mcp
 
 ### Configure Application Environment Variables
 Update your main application's .env.production file:
@@ -312,9 +319,11 @@ curl https://yourdomain.com/api/health
 
 This endpoint will verify:
 - Environment variables are properly set
-- MCP server connectivity
+- MCP server connectivity (via JSON-RPC protocol)
 - Authentication with czlonkowski/n8n-mcp service
 - Available MCP tools and capabilities
+
+Note: The MCP server uses JSON-RPC protocol via the /mcp endpoint, not direct REST API calls to individual tools.
 
 ### Available MCP Tools
 The czlonkowski/n8n-mcp server provides these powerful tools:
@@ -403,7 +412,8 @@ free -h
    - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_AUTH_TOKEN" http://localhost:3001/health
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
    - Restart MCP server if needed: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
-   - Test specific MCP tools: curl -X POST -H "Authorization: Bearer YOUR_AUTH_TOKEN" -H "Content-Type: application/json" -d '{"query": "test"}' http://localhost:3001/tools/search_nodes
+   - Test MCP endpoint info: curl -H "Authorization: Bearer YOUR_AUTH_TOKEN" http://localhost:3001/mcp
+   - Test MCP JSON-RPC protocol: curl -X POST -H "Authorization: Bearer YOUR_AUTH_TOKEN" -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' http://localhost:3001/mcp
    - If container won't start, check Docker service: sudo systemctl status docker
    - If Docker Compose file has issues, validate syntax: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml config
    - For ContainerConfig errors, try: docker system prune -a (removes unused images/containers)
@@ -484,20 +494,32 @@ docker stats n8n-mcp-server
 docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
 
 ### Test MCP server functionality
-# Test core tools
-curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+# Test MCP endpoint information
+curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
-     -d '{}' \
-     http://localhost:3001/tools/tools_documentation
+     http://localhost:3001/mcp
 
-# Test node search
+# Test available tools via MCP JSON-RPC
 curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
-     -d '{"query": "slack", "limit": 3}' \
-     http://localhost:3001/tools/search_nodes
+     -d '{
+       "jsonrpc": "2.0",
+       "id": 1,
+       "method": "tools/list",
+       "params": {}
+     }' \
+     http://localhost:3001/mcp
 
-# Test node validation
+# Test node search via MCP JSON-RPC
 curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      -H "Content-Type: application/json" \
-     -d '{"nodeType": "n8n-nodes-base.slack", "config": {"resource": "message", "operation": "send"}}' \
-     http://localhost:3001/tools/validate_node_minimal
+     -d '{
+       "jsonrpc": "2.0",
+       "id": 2,
+       "method": "tools/call",
+       "params": {
+         "name": "search_nodes",
+         "arguments": {"query": "slack", "limit": 3}
+       }
+     }' \
+     http://localhost:3001/mcp
