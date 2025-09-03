@@ -230,7 +230,6 @@ cd /var/www/mcp-server
 nano docker-compose.mcp.yml
 
 ### Add Docker Compose configuration:
-version: '3.8'
 services:
   n8n-mcp:
     image: ghcr.io/czlonkowski/n8n-mcp:latest
@@ -239,6 +238,7 @@ services:
     ports:
       - "3001:3001"
     environment:
+      - NODE_ENV=production
       - MCP_MODE=http
       - LOG_LEVEL=error
       - DISABLE_CONSOLE_OUTPUT=true
