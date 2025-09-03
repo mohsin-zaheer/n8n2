@@ -255,7 +255,7 @@ services:
 nano .env
 
 ### Add environment variables:
-AUTH_TOKEN=your_generated_auth_token_here
+AUTH_TOKEN=28d8026f-fad7-4bc6-87c5-9fcacba57fde
 
 ### Generate a secure auth token for MCP
 openssl rand -hex 32
