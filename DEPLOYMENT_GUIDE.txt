@@ -313,15 +313,21 @@ services:
       - ./data:/app/data
     env_file:
       - .env
+    user: "1000:1000"
+    environment:
+      - REBUILD_ON_START=true
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
-### Create data directory for persistent storage
+### Create data directory for persistent storage with correct permissions
 mkdir -p ./data
+# Set proper permissions for the data directory (container runs as user 1000)
+sudo chown -R 1000:1000 ./data
+chmod -R 755 ./data
 
 ### Start MCP server with Docker Compose
 # Try Docker Compose V2 first (recommended)
@@ -472,15 +478,18 @@ free -h
    - Check if container is running: docker ps | grep n8n-mcp-server
    - Check container logs for errors: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
    - Verify port 3001 is listening: netstat -tlnp | grep 3001
-   - Test MCP server connectivity: curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" http://localhost:3001/health
+   - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3001/health
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
    - Restart MCP server if needed: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
-   - Test MCP endpoint info: curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" http://localhost:3001/mcp
-   - Test MCP JSON-RPC protocol: curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' http://localhost:3001/mcp
+   - Test MCP endpoint info: curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3001/mcp
+   - Test MCP JSON-RPC protocol: curl -X POST -H "Authorization: Bearer YOUR_TOKEN" -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' http://localhost:3001/mcp
    - If container won't start, check Docker service: sudo systemctl status docker
    - If Docker Compose file has issues, validate syntax: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml config
    - For ContainerConfig errors, try: docker system prune -a (removes unused images/containers)
    - If using old docker-compose version, try: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml down --remove-orphans
+   - **For permission issues**: Stop container, fix data directory permissions: `sudo chown -R 1000:1000 /var/www/mcp-server/data && chmod -R 755 /var/www/mcp-server/data`, then restart
+   - **For missing schema.sql errors**: The container should rebuild the database automatically with `REBUILD_ON_START=true`
+   - **If database initialization fails**: Try pulling the latest image: `docker pull ghcr.io/czlonkowski/n8n-mcp:latest`
 
 5. **Performance issues**
    - Monitor system resources: htop, free -h
