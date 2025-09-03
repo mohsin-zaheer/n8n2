@@ -226,6 +226,78 @@ docker pull ghcr.io/czlonkowski/n8n-mcp:latest
 mkdir -p /var/www/mcp-server
 cd /var/www/mcp-server
 
+### Create environment file for MCP server
+nano .env
+
+### Add environment variables following the official configuration format:
+# ====================
+# COMMON CONFIGURATION
+# ====================
+
+# Database Configuration
+# For Docker: /app/data/nodes.db (mounted volume)
+NODE_DB_PATH=/app/data/nodes.db
+
+# Logging Level (debug, info, warn, error)
+MCP_LOG_LEVEL=info
+
+# Node Environment (development, production)
+NODE_ENV=production
+
+# Rebuild database on startup (true/false)
+REBUILD_ON_START=false
+
+# =========================
+# SIMPLE HTTP MODE
+# =========================
+# Used for private single-user deployments
+
+# Server mode: stdio (local) or http (remote)
+MCP_MODE=http
+
+# Use fixed HTTP implementation (recommended for stability)
+USE_FIXED_HTTP=true
+
+# HTTP Server Configuration
+PORT=3001
+HOST=0.0.0.0
+
+# Authentication token for HTTP mode (REQUIRED)
+# Generate with: openssl rand -base64 32
+AUTH_TOKEN=your-secure-token-here
+
+# CORS origin for HTTP mode (optional)
+# Default: * (allow all origins)
+# For production, set to your specific domain
+CORS_ORIGIN=*
+
+# Trust proxy configuration for correct IP logging
+# Set to 1 when running behind a reverse proxy (Nginx, Traefik, etc.)
+TRUST_PROXY=1
+
+# =========================
+# N8N API CONFIGURATION
+# =========================
+# Optional: Enable n8n management tools by providing API credentials
+
+# n8n instance API URL (without /api/v1 suffix)
+# N8N_API_URL=https://your-n8n-instance.com
+
+# n8n API Key (get from Settings > API in your n8n instance)
+# N8N_API_KEY=
+
+# n8n API request timeout in milliseconds (default: 30000)
+# N8N_API_TIMEOUT=30000
+
+# Maximum number of API request retries (default: 3)
+# N8N_API_MAX_RETRIES=3
+
+### Generate a secure auth token for MCP
+openssl rand -base64 32
+
+### Update the AUTH_TOKEN in .env file with the generated token
+# Replace "your-secure-token-here" with the generated token
+
 ### Create Docker Compose file for MCP server
 nano docker-compose.mcp.yml
 
@@ -237,14 +309,10 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
-    environment:
-      - NODE_ENV=production
-      - MCP_MODE=http
-      - LOG_LEVEL=error
-      - DISABLE_CONSOLE_OUTPUT=true
-      - AUTH_TOKEN=${AUTH_TOKEN}
-      - MCP_PROFILE=${MCP_PROFILE}
-      - PORT=3001
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
       interval: 30s
@@ -252,15 +320,8 @@ services:
       retries: 3
       start_period: 40s
 
-### Create environment file for MCP server
-nano .env
-
-### Add environment variables:
-AUTH_TOKEN=28d8026f-fad7-4bc6-87c5-9fcacba57fde
-MCP_PROFILE=intermediate-cuckoo-DIapDk
-
-### Generate a secure auth token for MCP
-openssl rand -hex 32
+### Create data directory for persistent storage
+mkdir -p ./data
 
 ### Start MCP server with Docker Compose
 # Try Docker Compose V2 first (recommended)
@@ -283,18 +344,18 @@ docker compose -f docker-compose.mcp.yml logs n8n-mcp
 ### Verify MCP Server Installation
 Test the MCP server is running correctly:
 
-### Test health endpoint
-curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+### Test health endpoint (replace YOUR_TOKEN with your actual AUTH_TOKEN)
+curl -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Content-Type: application/json" \
      http://localhost:3001/health
 
 ### Test MCP endpoint information
-curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+curl -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Content-Type: application/json" \
      http://localhost:3001/mcp
 
 ### Test MCP JSON-RPC protocol (example tool call)
-curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
        "jsonrpc": "2.0",
@@ -312,8 +373,8 @@ Update your main application's .env.production file:
 
 ### Required MCP configuration in .env.production:
 MCP_SERVER_URL=http://localhost:3001
-MCP_API_KEY=28d8026f-fad7-4bc6-87c5-9fcacba57fde
-MCP_PROFILE=intermediate-cuckoo-DIapDk
+MCP_API_KEY=YOUR_GENERATED_AUTH_TOKEN
+MCP_PROFILE=default
 
 ### MCP Health Check via Application:
 Once deployed, test the MCP integration through your application:
@@ -496,13 +557,13 @@ docker stats n8n-mcp-server
 docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs -f
 
 ### Test MCP server functionality
-# Test MCP endpoint information
-curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+# Test MCP endpoint information (replace YOUR_TOKEN with your actual AUTH_TOKEN)
+curl -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Content-Type: application/json" \
      http://localhost:3001/mcp
 
 # Test available tools via MCP JSON-RPC
-curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
        "jsonrpc": "2.0",
@@ -513,7 +574,7 @@ curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
      http://localhost:3001/mcp
 
 # Test node search via MCP JSON-RPC
-curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" \
+curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
        "jsonrpc": "2.0",
