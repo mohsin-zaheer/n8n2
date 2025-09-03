@@ -389,6 +389,10 @@ MCP_SERVER_URL=http://localhost:3001
 MCP_API_KEY=28d8026f-fad7-4bc6-87c5-9fcacba57fde
 MCP_PROFILE=default
 
+### IMPORTANT: Restart the application after updating MCP configuration
+pm2 restart n8n-workflow-builder
+pm2 logs n8n-workflow-builder --lines 50
+
 ### MCP Health Check via Application:
 Once deployed, test the MCP integration through your application:
 curl https://yourdomain.com/api/health
@@ -486,7 +490,8 @@ free -h
      grep AUTH_TOKEN /var/www/mcp-server/.env
      # Check application token  
      grep MCP_API_KEY /var/www/n8n-workflow-builder/.env.production
-     # They should match exactly - if not, update .env.production and restart app
+     # They should match exactly - if not, update .env.production and restart app:
+     # pm2 restart n8n-workflow-builder
      ```
    - Verify MCP environment variables are set correctly
    - Check if Docker Compose service started: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
