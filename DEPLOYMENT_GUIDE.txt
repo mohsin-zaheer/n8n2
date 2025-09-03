@@ -220,7 +220,11 @@ docker compose version
 # OR for older versions: docker-compose --version
 
 ### Pull the optimized Docker image
+# Try the latest tag first, if it fails we'll use a specific version
 docker pull ghcr.io/czlonkowski/n8n-mcp:latest
+
+# If the latest image has issues, try a specific version
+# docker pull ghcr.io/czlonkowski/n8n-mcp:v2.7.16
 
 ### Create MCP server directory and configuration
 mkdir -p /var/www/mcp-server
@@ -313,21 +317,24 @@ services:
       - ./data:/app/data
     env_file:
       - .env
-    user: "1000:1000"
+    # Remove user specification to let container run as root initially
+    # user: "1000:1000"
     environment:
       - REBUILD_ON_START=true
+      # Try to force database rebuild
+      - FORCE_REBUILD=true
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
 
 ### Create data directory for persistent storage with correct permissions
 mkdir -p ./data
-# Set proper permissions for the data directory (container runs as user 1000)
-sudo chown -R 1000:1000 ./data
-chmod -R 755 ./data
+# Set broad permissions initially to allow container to initialize
+sudo chmod -R 777 ./data
+# We'll fix permissions after the database is created
 
 ### Start MCP server with Docker Compose
 # Try Docker Compose V2 first (recommended)
@@ -487,9 +494,27 @@ free -h
    - If Docker Compose file has issues, validate syntax: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml config
    - For ContainerConfig errors, try: docker system prune -a (removes unused images/containers)
    - If using old docker-compose version, try: docker-compose -f /var/www/mcp-server/docker-compose.mcp.yml down --remove-orphans
-   - **For permission issues**: Stop container, fix data directory permissions: `sudo chown -R 1000:1000 /var/www/mcp-server/data && chmod -R 755 /var/www/mcp-server/data`, then restart
-   - **For missing schema.sql errors**: The container should rebuild the database automatically with `REBUILD_ON_START=true`
-   - **If database initialization fails**: Try pulling the latest image: `docker pull ghcr.io/czlonkowski/n8n-mcp:latest`
+   - **For permission issues**: Stop container, fix data directory permissions: `sudo chmod -R 777 /var/www/mcp-server/data`, then restart
+   - **For missing schema.sql errors**: The container should rebuild the database automatically with `REBUILD_ON_START=true` and `FORCE_REBUILD=true`
+   - **If database initialization fails**: Try different image versions:
+     ```bash
+     docker compose -f docker-compose.mcp.yml down
+     docker pull ghcr.io/czlonkowski/n8n-mcp:v2.7.16
+     # Update docker-compose.mcp.yml to use :v2.7.16 instead of :latest
+     docker compose -f docker-compose.mcp.yml up -d
+     ```
+   - **Alternative approach**: If the Docker image continues to fail, try running the MCP server directly:
+     ```bash
+     # Clone and build the MCP server manually
+     cd /var/www
+     git clone https://github.com/czlonkowski/n8n-mcp.git
+     cd n8n-mcp
+     npm install
+     npm run build
+     npm run rebuild
+     # Copy your .env file from /var/www/mcp-server/.env to /var/www/n8n-mcp/.env
+     npm run start:http
+     ```
 
 5. **Performance issues**
    - Monitor system resources: htop, free -h
