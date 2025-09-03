@@ -386,7 +386,7 @@ Update your main application's .env.production file:
 
 ### Required MCP configuration in .env.production:
 MCP_SERVER_URL=http://localhost:3001
-MCP_API_KEY=YOUR_GENERATED_AUTH_TOKEN
+MCP_API_KEY=28d8026f-fad7-4bc6-87c5-9fcacba57fde
 MCP_PROFILE=default
 
 ### MCP Health Check via Application:
