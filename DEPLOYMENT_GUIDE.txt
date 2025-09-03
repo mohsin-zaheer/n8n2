@@ -409,11 +409,11 @@ free -h
    - Check if container is running: docker ps | grep n8n-mcp-server
    - Check container logs for errors: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml logs n8n-mcp
    - Verify port 3001 is listening: netstat -tlnp | grep 3001
-   - Test MCP server connectivity: curl -H "Authorization: Bearer YOUR_AUTH_TOKEN" http://localhost:3001/health
+   - Test MCP server connectivity: curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" http://localhost:3001/health
    - Check application logs for MCP-related errors: pm2 logs n8n-workflow-builder | grep -i mcp
    - Restart MCP server if needed: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml restart
-   - Test MCP endpoint info: curl -H "Authorization: Bearer YOUR_AUTH_TOKEN" http://localhost:3001/mcp
-   - Test MCP JSON-RPC protocol: curl -X POST -H "Authorization: Bearer YOUR_AUTH_TOKEN" -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' http://localhost:3001/mcp
+   - Test MCP endpoint info: curl -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" http://localhost:3001/mcp
+   - Test MCP JSON-RPC protocol: curl -X POST -H "Authorization: Bearer 28d8026f-fad7-4bc6-87c5-9fcacba57fde" -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' http://localhost:3001/mcp
    - If container won't start, check Docker service: sudo systemctl status docker
    - If Docker Compose file has issues, validate syntax: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml config
    - For ContainerConfig errors, try: docker system prune -a (removes unused images/containers)
