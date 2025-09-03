@@ -480,6 +480,14 @@ free -h
    - Check certbot logs: sudo journalctl -u certbot
 
 4. **MCP connection issues**
+   - **MOST COMMON**: Authentication token mismatch between application and MCP server
+     ```bash
+     # Check MCP server token
+     grep AUTH_TOKEN /var/www/mcp-server/.env
+     # Check application token  
+     grep MCP_API_KEY /var/www/n8n-workflow-builder/.env.production
+     # They should match exactly - if not, update .env.production and restart app
+     ```
    - Verify MCP environment variables are set correctly
    - Check if Docker Compose service started: docker compose -f /var/www/mcp-server/docker-compose.mcp.yml ps
    - Check if container is running: docker ps | grep n8n-mcp-server
