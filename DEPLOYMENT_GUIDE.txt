@@ -243,6 +243,7 @@ services:
       - LOG_LEVEL=error
       - DISABLE_CONSOLE_OUTPUT=true
       - AUTH_TOKEN=${AUTH_TOKEN}
+      - MCP_PROFILE=${MCP_PROFILE}
       - PORT=3001
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
@@ -256,6 +257,7 @@ nano .env
 
 ### Add environment variables:
 AUTH_TOKEN=28d8026f-fad7-4bc6-87c5-9fcacba57fde
+MCP_PROFILE=intermediate-cuckoo-DIapDk
 
 ### Generate a secure auth token for MCP
 openssl rand -hex 32
