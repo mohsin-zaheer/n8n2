@@ -539,17 +539,17 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
 
             return categoryName ? (
               <>
-                {/* Main category in black pill with white text and icon */}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+                {/* Main category - modern green filled pill with icon */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)]">
                   {Icon && <Icon className="h-3 w-3" />}
                   {categoryName}
                 </span>
                 
-                {/* Subcategory - white with black border */}
+                {/* Subcategory - outline style pill */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
                   return subcategoryName ? (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-black border border-gray-300">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(1,152,115)] border-2 border-[rgb(1,152,115)]">
                       {subcategoryName}
                     </span>
                   ) : null;
@@ -560,14 +560,14 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
           
           {/* Fallback to old category field if no new data or invalid category_id */}
           {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)]">
               {workflow.seoMetadata.category}
             </span>
           )}
           
           {/* Default category if no category data at all */}
           {!workflow.seoMetadata?.category_id && !workflow.seoMetadata?.category && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)]">
               Automation
             </span>
           )}
