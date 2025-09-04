@@ -124,3 +124,50 @@ if (typeof window === 'undefined') {
   // Server-side: load categories immediately
   loadCategories().catch(console.error);
 }
+
+export function getCategoryHierarchy(): CategoryWithSubcategories[] {
+  const mainCategories: CategoryWithSubcategories[] = [];
+
+  // Get all main categories (level 0)
+  categoriesCache.forEach((cat) => {
+    if (cat.level === 0) {
+      const categoryWithSubs: CategoryWithSubcategories = {
+        ...cat,
+        subcategories: []
+      };
+      mainCategories.push(categoryWithSubs);
+    }
+  });
+
+  // Sort main categories by display order
+  mainCategories.sort((a, b) => a.display_order - b.display_order);
+
+  // Add subcategories to each main category
+  mainCategories.forEach(mainCat => {
+    categoriesCache.forEach((cat) => {
+      if (cat.parent_id === mainCat.id) {
+        mainCat.subcategories!.push(cat);
+      }
+    });
+    // Sort subcategories by display order
+    mainCat.subcategories!.sort((a, b) => a.display_order - b.display_order);
+  });
+
+  return mainCategories;
+}
+
+/**
+ * Get all category IDs that belong to a main category (including subcategories)
+ */
+export function getCategoryAndSubcategoryIds(mainCategoryId: string): string[] {
+  const ids: string[] = [mainCategoryId];
+
+  // Add all subcategory IDs
+  categoriesCache.forEach((cat) => {
+    if (cat.parent_id === mainCategoryId) {
+      ids.push(cat.id);
+    }
+  });
+
+  return ids;
+}
