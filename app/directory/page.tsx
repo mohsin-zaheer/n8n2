@@ -515,35 +515,38 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                 </span>
                 
                 {/* Subcategory - white with black border */}
-                {workflow.seoMetadata?.subcategory_id && (() => {
-                  const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  console.log('Subcategory debug:', {
-                    subcategoryId: workflow.seoMetadata.subcategory_id,
-                    subcategoryName,
-                    categoryId: workflow.seoMetadata.category_id
-                  });
-                  
-                  // Create a better fallback name
-                  let displayName = subcategoryName;
-                  if (!displayName) {
-                    // Try to create a readable name from the ID
-                    if (workflow.seoMetadata.subcategory_id === 'cat_2_sub_2') {
-                      displayName = 'Video Content';
-                    } else if (workflow.seoMetadata.subcategory_id.includes('sub_')) {
-                      displayName = workflow.seoMetadata.subcategory_id.replace(/cat_\d+_sub_\d+/, 'Subcategory');
-                    } else {
-                      displayName = 'Subcategory';
-                    }
-                  }
-                  
-                  // Always show the subcategory pill if subcategory_id exists
-                  return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
-                      <ChevronRight className="h-3 w-3" />
-                      {displayName}
-                    </span>
-                  );
-                })()}
+                {workflow.seoMetadata?.subcategory_id && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
+                    <ChevronRight className="h-3 w-3" />
+                    {(() => {
+                      const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
+                      
+                      // Create better fallback names based on known subcategory IDs
+                      if (subcategoryName) {
+                        return subcategoryName;
+                      }
+                      
+                      // Fallback mapping for known subcategory IDs
+                      const subcategoryMap: { [key: string]: string } = {
+                        'cat_1_sub_1': 'Paid Search',
+                        'cat_1_sub_2': 'Social Media Ads',
+                        'cat_2_sub_1': 'Blog Content',
+                        'cat_2_sub_2': 'Video Content',
+                        'cat_2_sub_3': 'SEO Content',
+                        'cat_3_sub_1': 'Lead Magnets',
+                        'cat_3_sub_2': 'Landing Pages',
+                        'cat_4_sub_1': 'Lead Scoring',
+                        'cat_4_sub_2': 'Sales Outreach',
+                        'cat_5_sub_1': 'SEO Optimization',
+                        'cat_5_sub_2': 'Content Marketing',
+                        'cat_6_sub_1': 'Customer Support',
+                        'cat_6_sub_2': 'Retention Campaigns'
+                      };
+                      
+                      return subcategoryMap[workflow.seoMetadata.subcategory_id] || 'Subcategory';
+                    })()}
+                  </span>
+                )}
               </>
             ) : null;
           })()}
