@@ -488,16 +488,6 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       <div className="p-4 sm:p-5">
         {/* Top Pills - Vetted first, then Category hierarchy */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {/* DEBUG: Log complete workflow data */}
-          {console.log('=== WORKFLOW CARD DEBUG ===', {
-            sessionId: workflow.session_id,
-            fullWorkflow: workflow,
-            seoMetadata: workflow.seoMetadata,
-            hasCategoryId: !!workflow.seoMetadata?.category_id,
-            hasSubcategoryId: !!workflow.seoMetadata?.subcategory_id,
-            categoryId: workflow.seoMetadata?.category_id,
-            subcategoryId: workflow.seoMetadata?.subcategory_id
-          })}
           
           {/* Vetted badge - first position with green gradient */}
           {workflow.is_vetted && (
