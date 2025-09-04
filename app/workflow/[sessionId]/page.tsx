@@ -51,6 +51,14 @@ export default function WorkflowStatusPage() {
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [phaseProgress, setPhaseProgress] = useState<{
+    current: string;
+    message: string;
+    details?: string;
+  }>({
+    current: "discovery",
+    message: "Starting workflow discovery...",
+  });
   const [pendingClarification, setPendingClarification] = useState<{
     questionId: string;
     question: string;
@@ -226,6 +234,63 @@ export default function WorkflowStatusPage() {
         });
       }
 
+      // Update phase progress with detailed messages
+      const updatePhaseProgress = (currentPhase: string, nodeCount: number = 0) => {
+        switch (currentPhase) {
+          case "discovery":
+            if (nodeCount > 0) {
+              setPhaseProgress({
+                current: "discovery",
+                message: `Found ${nodeCount} workflow nodes`,
+                details: "Analyzing your requirements and selecting the best integrations..."
+              });
+            } else {
+              setPhaseProgress({
+                current: "discovery",
+                message: "Discovering workflow nodes...",
+                details: "AI is exploring thousands of integrations to build your perfect workflow"
+              });
+            }
+            break;
+          case "configuration":
+            setPhaseProgress({
+              current: "configuration",
+              message: `Configuring ${nodeCount} nodes...`,
+              details: "Setting up parameters and connections for each integration"
+            });
+            break;
+          case "building":
+            setPhaseProgress({
+              current: "building",
+              message: "Building workflow structure...",
+              details: "Creating connections and organizing workflow logic"
+            });
+            break;
+          case "validation":
+            setPhaseProgress({
+              current: "validation",
+              message: "Validating workflow...",
+              details: "Checking all configurations and ensuring everything works correctly"
+            });
+            break;
+          case "documentation":
+            setPhaseProgress({
+              current: "documentation",
+              message: "Finalizing workflow...",
+              details: "Adding documentation and preparing your workflow for use"
+            });
+            break;
+          default:
+            setPhaseProgress({
+              current: currentPhase,
+              message: `Processing ${currentPhase}...`,
+              details: "Working on your workflow..."
+            });
+        }
+      };
+
+      updatePhaseProgress(data.phase, data.selectedNodes?.length || 0);
+
       setPhase(data.phase);
       setComplete(data.complete);
       setPrompt(data.prompt || "");
@@ -266,12 +331,19 @@ export default function WorkflowStatusPage() {
     // Initial fetch
     fetchStatus();
 
-    // Poll every 5 seconds
+    // Poll more frequently during active phases for better UX
+    const getPollingInterval = () => {
+      if (complete) return 10000; // Slow down when complete
+      if (phase === "discovery" && selectedNodes.length === 0) return 2000; // Fast during initial discovery
+      if (phase === "configuration" || phase === "building") return 3000; // Medium during processing
+      return 5000; // Default
+    };
+
     const interval = setInterval(() => {
       if (!complete) {
         fetchStatus();
       }
-    }, 5000);
+    }, getPollingInterval());
 
     return () => clearInterval(interval);
   }, [sessionId, complete, fetchStatus]);
@@ -551,37 +623,26 @@ export default function WorkflowStatusPage() {
     };
   }, [phase]);
 
-  // Phase mapping for chips - simplified and more reliable
+  // Phase mapping for chips - more accurate mapping
   const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
     if (complete) return "polishing"; // Show as complete
     
-    // If we're in discovery and have no nodes yet, show discovering
-    if (phase === "discovery" && selectedNodes.length === 0) {
-      return "discovering";
+    // Map phases more accurately
+    switch (phase) {
+      case "discovery":
+        return selectedNodes.length === 0 ? "discovering" : "configuring";
+      case "configuration":
+        return "configuring";
+      case "building":
+        return "building";
+      case "validation":
+      case "documentation":
+        return "polishing";
+      default:
+        // Handle any unknown phases
+        if (selectedNodes.length === 0) return "discovering";
+        return "configuring";
     }
-    
-    // If we're in discovery but have nodes, show configuring (transitioning)
-    if (phase === "discovery" && selectedNodes.length > 0) {
-      return "configuring";
-    }
-    
-    // Configuration phase
-    if (phase === "configuration") {
-      return "configuring";
-    }
-    
-    // Building phase
-    if (phase === "building") {
-      return "building";
-    }
-    
-    // Validation and documentation phases
-    if (phase === "validation" || phase === "documentation") {
-      return "polishing";
-    }
-    
-    // Default fallback
-    return "configuring";
   })();
 
   // Derive staged NodeGrid props from API
@@ -761,8 +822,8 @@ export default function WorkflowStatusPage() {
               </div>
             )}
 
-            {/* Discovery preloader - only show if truly in discovery with no nodes yet */}
-            {phase === "discovery" && selectedNodes.length === 0 && visibleCount === 0 && (
+            {/* Real-time progress display - show for all phases when no nodes are visible yet */}
+            {!complete && selectedNodes.length === 0 && (
               <div className="mb-6 flex min-h-[300px] items-center justify-center">
                 <div className="flex flex-col items-center gap-6">
                   {/* n8n pulse animation */}
@@ -770,15 +831,20 @@ export default function WorkflowStatusPage() {
                   
                   <div className="text-center">
                     <h3 className="text-xl mt-3 font-semibold text-neutral-900 mb-2">
-                      Discovering your workflow
+                      {phaseProgress.message}
                     </h3>
                     <p className="text-sm text-neutral-600 max-w-md leading-relaxed">
-                      Our AI is analyzing your requirements and exploring thousands of possible integrations to build the perfect automation workflow
+                      {phaseProgress.details}
                     </p>
                     
-                    {/* Current icon name display */}
-                    {currentDiscoveryIcon && (
-                      <div className="mt-3 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium inline-block">
+                    {/* Current phase indicator */}
+                    <div className="mt-3 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium inline-block">
+                      Phase: {PHASE_NAMES[phase as keyof typeof PHASE_NAMES] || phase}
+                    </div>
+                    
+                    {/* Current icon name display for discovery */}
+                    {phase === "discovery" && currentDiscoveryIcon && (
+                      <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium inline-block">
                         Exploring: {currentDiscoveryIcon.charAt(0).toUpperCase() + currentDiscoveryIcon.slice(1)}
                       </div>
                     )}
@@ -791,8 +857,46 @@ export default function WorkflowStatusPage() {
                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                    <span className="text-xs text-neutral-500 ml-2">Finding the best nodes...</span>
+                    <span className="text-xs text-neutral-500 ml-2">
+                      {phase === "discovery" ? "Finding the best nodes..." : 
+                       phase === "configuration" ? "Configuring integrations..." :
+                       phase === "building" ? "Building connections..." :
+                       phase === "validation" ? "Validating workflow..." :
+                       "Processing..."}
+                    </span>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Progress display when nodes are being configured/built */}
+            {!complete && selectedNodes.length > 0 && (phase === "configuration" || phase === "building" || phase === "validation" || phase === "documentation") && (
+              <div className="mb-6 bg-white rounded-lg border border-neutral-200 p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-shrink-0">
+                    <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-neutral-900">{phaseProgress.message}</h4>
+                    <p className="text-sm text-neutral-600">{phaseProgress.details}</p>
+                  </div>
+                </div>
+                
+                {/* Progress bar */}
+                <div className="w-full bg-neutral-200 rounded-full h-2">
+                  <div 
+                    className="bg-emerald-600 h-2 rounded-full transition-all duration-500 ease-out"
+                    style={{
+                      width: phase === "configuration" ? "25%" :
+                             phase === "building" ? "60%" :
+                             phase === "validation" ? "80%" :
+                             phase === "documentation" ? "95%" : "10%"
+                    }}
+                  ></div>
+                </div>
+                
+                <div className="mt-2 text-xs text-neutral-500 text-center">
+                  {selectedNodes.length} nodes • Phase: {PHASE_NAMES[phase as keyof typeof PHASE_NAMES] || phase}
                 </div>
               </div>
             )}
