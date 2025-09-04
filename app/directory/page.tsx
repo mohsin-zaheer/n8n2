@@ -514,6 +514,12 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                   {categoryName}
                 </span>
                 
+                {/* DEBUG: Always show subcategory info */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300">
+                  <ChevronRight className="h-3 w-3" />
+                  DEBUG: {workflow.seoMetadata?.subcategory_id || 'NO_SUBCAT'}
+                </span>
+
                 {/* Subcategory - bright colored pill for visibility */}
                 {workflow.seoMetadata?.subcategory_id && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-2 border-blue-300">
