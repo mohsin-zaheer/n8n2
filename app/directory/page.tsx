@@ -502,14 +502,25 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
           )}
           
           
-          {/* Category hierarchy pills - only show if new data exists and has valid names */}
+          {/* Category hierarchy pills - only show if new data exists */}
           {workflow.seoMetadata?.category_id && (() => {
-            const categoryName = getCategoryName(workflow.seoMetadata.category_id);
             const categoryId = workflow.seoMetadata.category_id;
+            const categoryName = getCategoryName(categoryId);
             const Icon = categoryIcons[categoryId];
             
+            // Create fallback category names if getCategoryName returns empty
+            const fallbackCategoryNames: { [key: string]: string } = {
+              'cat_1': 'Marketing',
+              'cat_2': 'Content',
+              'cat_3': 'Lead Generation',
+              'cat_4': 'Sales',
+              'cat_5': 'SEO',
+              'cat_6': 'Customer Success'
+            };
             
-            return categoryName ? (
+            const displayCategoryName = categoryName || fallbackCategoryNames[categoryId] || categoryId;
+            
+            return (
               <>
                 {/* Main category in black pill with white text and icon */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
