@@ -456,7 +456,7 @@ export class WorkflowQueries {
             userPrompt: row.user_prompt || state.userPrompt || "",
             createdAt: row.created_at,
             updatedAt: row.updated_at,
-            isVetted: row.is_vetted || false,
+            isVetted: Boolean(row.is_vetted),
             user: user,
           };
         })

@@ -131,7 +131,7 @@ const WorkflowDirectoryContent = () => {
           session_id: workflow.sessionId || workflow.session_id,
           created_at: workflow.createdAt || workflow.created_at,
           updated_at: workflow.updatedAt || workflow.updated_at,
-          is_vetted: workflow.isVetted || workflow.is_vetted,
+          is_vetted: Boolean(workflow.isVetted || workflow.is_vetted),
           state: {
             phase: 'complete' as const,
             nodes: workflow.workflow?.nodes || workflow.state?.nodes || [],
