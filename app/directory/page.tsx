@@ -3,14 +3,15 @@
 import React, { useState, useEffect, useMemo, Suspense, useCallback, memo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { Search, Filter, X, Clock, Users, Zap, User } from 'lucide-react'
+import { Search, Filter, X, Clock, Users, Zap, User, ChevronRight } from 'lucide-react'
 import { WorkflowQueries } from '@/lib/db/workflow-queries'
 import { WorkflowState } from '@/lib/db/types'
 import { WorkflowSEOMetadata } from '@/types/seo'
 import { VettedBadge } from '@/components/ui/vetted-badge'
 import { NodeIcon } from '@/components/ui/node-icon'
 import { resolveIconName } from '@/lib/icon-aliases'
-import { loadCategories, getCategoryName, getSubcategoryName, getTopLevelCategories } from '@/lib/services/category-helper.service'
+import { loadCategories, getCategoryName, getSubcategoryName, getCategoryHierarchy, categoryIcons } from '@/lib/services/category-helper.service'
+import { CategoryWithSubcategories } from '@/types/categories'
 
 interface WorkflowSearchResult {
   session_id: string;
@@ -53,14 +54,16 @@ const WorkflowDirectoryContent = () => {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'recent' | 'popular'>('relevance')
+  const [onlyVetted, setOnlyVetted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [dynamicCategories, setDynamicCategories] = useState<Array<{id: string, name: string}>>([])
-  const itemsPerPage = 10
+  const [dynamicCategories, setDynamicCategories] = useState<CategoryWithSubcategories[]>([])
+  const itemsPerPage = 12
 
   // Initialize filters from URL parameters
   useEffect(() => {
     const categoryParam = searchParams.get('category')
     const searchParam = searchParams.get('search')
+    const vettedParam = searchParams.get('vetted')
     
     if (categoryParam) {
       setSelectedCategory(categoryParam)
@@ -68,6 +71,10 @@ const WorkflowDirectoryContent = () => {
     
     if (searchParam) {
       setSearchQuery(searchParam)
+    }
+
+    if (vettedParam === 'true') {
+      setOnlyVetted(true)
     }
   }, [searchParams])
 
@@ -82,15 +89,15 @@ const WorkflowDirectoryContent = () => {
         } else {
           // Fallback to client-side loading
           await loadCategories();
-          const topLevel = getTopLevelCategories();
-          setDynamicCategories(topLevel);
+          const hierarchy = getCategoryHierarchy();
+          setDynamicCategories(hierarchy);
         }
       } catch (error) {
         console.error('Failed to load categories:', error)
         // Fallback to client-side loading
         await loadCategories();
-        const topLevel = getTopLevelCategories();
-        setDynamicCategories(topLevel);
+        const hierarchy = getCategoryHierarchy();
+        setDynamicCategories(hierarchy);
       }
     };
     initCategories();
@@ -105,8 +112,9 @@ const WorkflowDirectoryContent = () => {
         // Use server-side search API
         const params = new URLSearchParams({
           q: debouncedSearchQuery,
-          category: selectedCategory === 'all' ? '' : selectedCategory,
+          category: selectedCategory,
           sortBy,
+          vetted: onlyVetted.toString(),
           page: currentPage.toString(),
           limit: itemsPerPage.toString()
         })
@@ -149,7 +157,7 @@ const WorkflowDirectoryContent = () => {
     }
 
     loadWorkflows()
-  }, [debouncedSearchQuery, selectedCategory, sortBy, currentPage])
+  }, [debouncedSearchQuery, selectedCategory, sortBy, onlyVetted, currentPage])
 
   // Since filtering is now done server-side, we can use workflows directly
   const filteredWorkflows = workflows
@@ -162,13 +170,42 @@ const WorkflowDirectoryContent = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedCategory, sortBy])
+  }, [searchQuery, selectedCategory, sortBy, onlyVetted])
 
-  // Build categories list for dropdown
-  const categories = [
-    { id: 'all', name: 'All Categories' },
-    ...dynamicCategories
-  ]
+  // Build categories list for dropdown - now with hierarchy
+  const renderCategoryOptions = () => {
+    const options: JSX.Element[] = [];
+
+    // Add "All Categories" option
+    options.push(
+      <option key="all" value="all" className="font-medium">
+        All Categories
+      </option>
+    );
+
+    // Add main categories and their subcategories
+    dynamicCategories.forEach(mainCategory => {
+      // Add main category
+      options.push(
+        <option key={mainCategory.id} value={mainCategory.id} className="font-semibold">
+          {mainCategory.name}
+        </option>
+      );
+
+      // Add subcategories (indented)
+      if (mainCategory.subcategories && mainCategory.subcategories.length > 0) {
+        mainCategory.subcategories.forEach(subCategory => {
+          options.push(
+            <option key={subCategory.id} value={subCategory.id} className="pl-4">
+              ↳ {subCategory.name}
+            </option>
+          );
+        });
+      }
+    });
+
+    return options;
+  }
 
   return (
     <div className="min-h-screen bg-[rgb(236,244,240)]">
@@ -207,20 +244,47 @@ const WorkflowDirectoryContent = () => {
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
-            {/* Category Filter */}
+            {/* Category Filter with Icons */}
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                  style={{ minWidth: '200px' }}
+                >
+                  {renderCategoryOptions()}
+                </select>
+                <ChevronRight className="absolute right-2 top-1/2 transform -translate-y-1/2 rotate-90 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+              {/* Show selected category icon if it's a main category */}
+              {selectedCategory !== 'all' && (() => {
+                const mainCat = dynamicCategories.find(cat => cat.id === selectedCategory);
+                if (mainCat && mainCat.icon) {
+                  const Icon = categoryIcons[mainCat.id];
+                  return Icon ? (
+                    <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  ) : null;
+                }
+                return null;
+              })()}
+            </div>
+
+            {/* Vetted Filter Checkbox */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="vetted-filter"
+                checked={onlyVetted}
+                onChange={(e) => setOnlyVetted(e.target.checked)}
+                className="h-4 w-4 text-[rgb(27,200,140)] focus:ring-[rgb(27,200,140)] border-gray-300 rounded"
+              />
+              <label htmlFor="vetted-filter" className="text-sm text-gray-700 cursor-pointer select-none">
+                Only Vetted Workflows
+              </label>
             </div>
 
             {/* Sort By */}
@@ -435,25 +499,36 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       onClick={handleCardClick}
     >
       <div className="p-4 sm:p-5">
-        {/* Top Pills - Category hierarchy and Vetted */}
+        {/* Top Pills - Vetted first, then Category hierarchy */}
         <div className="flex flex-wrap gap-2 mb-3">
+          {/* Vetted badge - first position with green gradient */}
+          {workflow.is_vetted && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
+              background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+            }}>
+              ✓ Vetted workflow
+            </span>
+          )}
+
           {/* Category hierarchy pills - only show if new data exists and has valid names */}
           {workflow.seoMetadata?.category_id && (() => {
             const categoryName = getCategoryName(workflow.seoMetadata.category_id);
+            const categoryId = workflow.seoMetadata.category_id;
+            const Icon = categoryIcons[categoryId];
+
             return categoryName ? (
               <>
-                {/* Main category in green gradient pill */}
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
-                  background: 'linear-gradient(122deg, rgb(1, 152, 115) 0%, rgb(27, 200, 140) 50%, rgb(1, 147, 147) 100%)'
-                }}>
+                {/* Main category in black pill with white text and icon */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+                  {Icon && <Icon className="h-3 w-3" />}
                   {categoryName}
                 </span>
                 
-                {/* Subcategory - white with green border */}
+                {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
                   return subcategoryName ? (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)]">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-black border border-gray-300">
                       {subcategoryName}
                     </span>
                   ) : null;
@@ -464,26 +539,15 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
           
           {/* Fallback to old category field if no new data or invalid category_id */}
           {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
-              background: 'linear-gradient(122deg, rgb(1, 152, 115) 0%, rgb(27, 200, 140) 50%, rgb(1, 147, 147) 100%)'
-            }}>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
               {workflow.seoMetadata.category}
             </span>
           )}
           
           {/* Default category if no category data at all */}
           {!workflow.seoMetadata?.category_id && !workflow.seoMetadata?.category && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
-              background: 'linear-gradient(122deg, rgb(1, 152, 115) 0%, rgb(27, 200, 140) 50%, rgb(1, 147, 147) 100%)'
-            }}>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
               Automation
-            </span>
-          )}
-          
-          {/* Vetted badge */}
-          {workflow.is_vetted && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)]">
-              ✓ Vetted workflow
             </span>
           )}
         </div>
