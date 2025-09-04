@@ -88,82 +88,8 @@ export default function WorkflowStatusPage() {
   const [currentDiscoveryIcon, setCurrentDiscoveryIcon] = useState<string>("");
   const discoveryIconTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      let url = `/api/workflow/${sessionId}/state`;
-      if (typeof window !== "undefined") {
-        const incoming = new URLSearchParams(window.location.search);
-        const normalized = new URLSearchParams();
-        const rawPhase = incoming.get("phase");
-        if (rawPhase) {
-          // In case of malformed URLs like ?phase=discovery?clarify=1
-          normalized.set("phase", rawPhase.split("?")[0]);
-        }
-        const clarifyParam =
-          incoming.get("clarify") ?? incoming.get("clarification");
-        if (clarifyParam === "1" || clarifyParam === "true") {
-          normalized.set("clarify", "1");
-        }
-        const qs = normalized.toString();
-        if (qs) url += `?${qs}`;
-      }
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // Check if this is a pending workflow that needs to be created
-          await handlePendingWorkflow();
-          return;
-        } else {
-          setError("Failed to fetch status");
-        }
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-
-      // Debug logging for phase transitions
-      if (data.phase !== phase) {
-        console.log(`Phase transition: ${phase} -> ${data.phase}`, {
-          selectedNodes: data.selectedNodes?.length || 0,
-          complete: data.complete,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      setPhase(data.phase);
-      setComplete(data.complete);
-      setPrompt(data.prompt || "");
-      setPendingClarification(data.pendingClarification);
-      setSelectedNodes(data.selectedNodes || []);
-      setLoading(false);
-      if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
-      setError("");
-
-      // Stop polling if complete and redirect
-      if (data.complete) {
-        if (seoSlugRef.current) {
-          // Small delay to show completion state briefly
-          setTimeout(() => {
-            router.push(`/w/${seoSlugRef.current}`);
-          }, 1500);
-        } else {
-          // Fallback if no SEO slug
-          setTimeout(() => {
-            router.push(`/workflow/${sessionId}?complete=true`);
-          }, 1500);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch status:", err);
-      setError("Failed to connect to server");
-      setLoading(false);
-    }
-  }, [sessionId, router, phase, handlePendingWorkflow]);
-
   // Handle pending workflow creation for authenticated users
-  const handlePendingWorkflow = async () => {
+  const handlePendingWorkflow = useCallback(async () => {
     try {
       const supabase = createClient();
 
@@ -254,7 +180,81 @@ export default function WorkflowStatusPage() {
       setError(err.message || "Failed to create workflow");
       setLoading(false);
     }
-  };
+  }, [sessionId, router]);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      let url = `/api/workflow/${sessionId}/state`;
+      if (typeof window !== "undefined") {
+        const incoming = new URLSearchParams(window.location.search);
+        const normalized = new URLSearchParams();
+        const rawPhase = incoming.get("phase");
+        if (rawPhase) {
+          // In case of malformed URLs like ?phase=discovery?clarify=1
+          normalized.set("phase", rawPhase.split("?")[0]);
+        }
+        const clarifyParam =
+          incoming.get("clarify") ?? incoming.get("clarification");
+        if (clarifyParam === "1" || clarifyParam === "true") {
+          normalized.set("clarify", "1");
+        }
+        const qs = normalized.toString();
+        if (qs) url += `?${qs}`;
+      }
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Check if this is a pending workflow that needs to be created
+          await handlePendingWorkflow();
+          return;
+        } else {
+          setError("Failed to fetch status");
+        }
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      // Debug logging for phase transitions
+      if (data.phase !== phase) {
+        console.log(`Phase transition: ${phase} -> ${data.phase}`, {
+          selectedNodes: data.selectedNodes?.length || 0,
+          complete: data.complete,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      setPhase(data.phase);
+      setComplete(data.complete);
+      setPrompt(data.prompt || "");
+      setPendingClarification(data.pendingClarification);
+      setSelectedNodes(data.selectedNodes || []);
+      setLoading(false);
+      if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
+      setError("");
+
+      // Stop polling if complete and redirect
+      if (data.complete) {
+        if (seoSlugRef.current) {
+          // Small delay to show completion state briefly
+          setTimeout(() => {
+            router.push(`/w/${seoSlugRef.current}`);
+          }, 1500);
+        } else {
+          // Fallback if no SEO slug
+          setTimeout(() => {
+            router.push(`/workflow/${sessionId}?complete=true`);
+          }, 1500);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch status:", err);
+      setError("Failed to connect to server");
+      setLoading(false);
+    }
+  }, [sessionId, router, phase, handlePendingWorkflow]);
 
   useEffect(() => {
     if (!sessionId) {
