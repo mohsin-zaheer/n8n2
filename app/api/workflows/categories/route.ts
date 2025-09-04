@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { loadCategories, getTopLevelCategories } from '@/lib/services/category-helper.service'
+import { loadCategories, getTopLevelCategories, getCategoryHierarchy } from '@/lib/services/category-helper.service'
+import { getWorkflowQueries } from '@/lib/db/workflow-queries'
 
 // Cache categories for 1 hour
 let categoriesCache: { data: any[], timestamp: number } | null = null
@@ -12,17 +13,26 @@ export async function GET() {
       return NextResponse.json(categoriesCache.data)
     }
 
-    // Load fresh categories
+    // Load fresh categories with subcategories
     await loadCategories()
-    const categories = getTopLevelCategories()
+    const categoryHierarchy = getCategoryHierarchy()
+    
+    // Also get categories from database workflows for dynamic categories
+    const workflowQueries = getWorkflowQueries()
+    const dbCategories = await workflowQueries.getCategories()
+    
+    // Merge static categories with dynamic ones from database
+    const allCategories = [...categoryHierarchy, ...dbCategories.filter(dbCat => 
+      !categoryHierarchy.find(staticCat => staticCat.id === dbCat.id)
+    )]
     
     // Update cache
     categoriesCache = {
-      data: categories,
+      data: allCategories,
       timestamp: Date.now()
     }
 
-    return NextResponse.json(categories)
+    return NextResponse.json(allCategories)
   } catch (error) {
     console.error('Categories API error:', error)
     return NextResponse.json(

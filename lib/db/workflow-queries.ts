@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { WorkflowBySlugResponse } from "@/types/seo";
+import { CategoryWithSubcategories } from "@/types/categories";
 
 /**
  * Database queries for workflow operations
@@ -354,9 +355,9 @@ export class WorkflowQueries {
         supabaseQuery = supabaseQuery.or(`state->seo->>title.ilike.%${query}%,state->seo->>description.ilike.%${query}%,state->workflow->settings->>name.ilike.%${query}%,user_prompt.ilike.%${query}%`);
       }
 
-      // Apply category filter
+      // Apply category filter - support both main categories and subcategories
       if (category && category !== 'all') {
-        supabaseQuery = supabaseQuery.or(`state->seo->>category_id.eq.${category},state->seo->>category.eq.${category}`);
+        supabaseQuery = supabaseQuery.or(`state->seo->>category_id.eq.${category},state->seo->>subcategory_id.eq.${category},state->seo->>category.eq.${category}`);
       }
 
       // Apply sorting
@@ -470,6 +471,81 @@ export class WorkflowQueries {
     } catch (error) {
       console.error("Error searching workflows:", error);
       return { workflows: [], total: 0 };
+    }
+  }
+
+  /**
+   * Get all categories and subcategories from workflows
+   * Used for dynamic category generation
+   */
+  async getCategories(): Promise<CategoryWithSubcategories[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from("workflow_sessions")
+        .select(`
+          state->seo->category_id,
+          state->seo->category,
+          state->seo->subcategory_id,
+          state->seo->subcategory
+        `)
+        .not("state", "is", null);
+
+      if (error) {
+        console.error("Error fetching categories:", error);
+        return [];
+      }
+
+      // Extract unique categories and subcategories
+      const categoryMap = new Map<string, CategoryWithSubcategories>();
+      
+      data?.forEach((row: any) => {
+        const seo = row.state?.seo;
+        if (!seo) return;
+
+        const categoryId = seo.category_id;
+        const categoryName = seo.category;
+        const subcategoryId = seo.subcategory_id;
+        const subcategoryName = seo.subcategory;
+
+        // Add main category
+        if (categoryId && categoryName) {
+          if (!categoryMap.has(categoryId)) {
+            categoryMap.set(categoryId, {
+              id: categoryId,
+              name: categoryName,
+              parent_id: null,
+              level: 0,
+              items: null,
+              display_order: 0,
+              created_at: new Date().toISOString(),
+              subcategories: []
+            });
+          }
+
+          // Add subcategory if exists
+          if (subcategoryId && subcategoryName) {
+            const category = categoryMap.get(categoryId)!;
+            const existingSubcat = category.subcategories?.find(sub => sub.id === subcategoryId);
+            
+            if (!existingSubcat) {
+              category.subcategories?.push({
+                id: subcategoryId,
+                name: subcategoryName,
+                parent_id: categoryId,
+                level: 1,
+                items: null,
+                display_order: 0,
+                created_at: new Date().toISOString()
+              });
+            }
+          }
+        }
+      });
+
+      return Array.from(categoryMap.values());
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      return [];
     }
   }
 

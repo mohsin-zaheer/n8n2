@@ -196,7 +196,7 @@ const WorkflowDirectoryContent = () => {
       if (mainCategory.subcategories && mainCategory.subcategories.length > 0) {
         mainCategory.subcategories.forEach(subCategory => {
           options.push(
-            <option key={subCategory.id} value={subCategory.id} className="pl-4">
+            <option key={subCategory.id} value={subCategory.id} className="pl-4" style={{ paddingLeft: '1rem' }}>
               ↳ {subCategory.name}
             </option>
           );
@@ -258,17 +258,32 @@ const WorkflowDirectoryContent = () => {
                 </select>
                 <ChevronRight className="absolute right-2 top-1/2 transform -translate-y-1/2 rotate-90 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
-              {/* Show selected category icon if it's a main category */}
+              {/* Show selected category icon if it's a main category or subcategory */}
               {selectedCategory !== 'all' && (() => {
+                // First check if it's a main category
                 const mainCat = dynamicCategories.find(cat => cat.id === selectedCategory);
-                if (mainCat && mainCat.icon) {
+                if (mainCat && categoryIcons[mainCat.id]) {
                   const Icon = categoryIcons[mainCat.id];
-                  return Icon ? (
+                  return (
                     <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
                       <Icon className="h-4 w-4" />
                     </div>
-                  ) : null;
+                  );
                 }
+            
+                // Check if it's a subcategory and show parent category icon
+                for (const category of dynamicCategories) {
+                  const subcat = category.subcategories?.find(sub => sub.id === selectedCategory);
+                  if (subcat && categoryIcons[category.id]) {
+                    const Icon = categoryIcons[category.id];
+                    return (
+                      <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                    );
+                  }
+                }
+            
                 return null;
               })()}
             </div>
