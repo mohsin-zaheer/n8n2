@@ -6,6 +6,17 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { CategoryWithSubcategories } from '@/types/categories';
+import { 
+  Target, 
+  Search, 
+  Users, 
+  MessageSquare, 
+  TrendingUp, 
+  Heart, 
+  Zap, 
+  MoreHorizontal 
+} from 'lucide-react';
 
 // Cache for categories to avoid repeated database calls
 let categoriesCache: Map<string, any> = new Map();
@@ -171,3 +182,17 @@ export function getCategoryAndSubcategoryIds(mainCategoryId: string): string[] {
 
   return ids;
 }
+
+/**
+ * Category icons mapping
+ */
+export const categoryIcons: Record<string, any> = {
+  'cat_1': Target,        // Paid Acquisition
+  'cat_2': Search,        // Organic & Content Marketing
+  'cat_3': Users,         // Lead Generation & Demand Capture
+  'cat_4': MessageSquare, // Lead Qualification & Sales Enablement
+  'cat_5': TrendingUp,    // Search & Traffic Growth
+  'cat_6': Heart,         // Retention, Loyalty & Customer Success
+  'cat_7': Zap,           // AI Operational Efficiency
+  'cat_8': MoreHorizontal // Other
+};
