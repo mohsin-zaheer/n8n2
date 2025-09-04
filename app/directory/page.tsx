@@ -501,11 +501,6 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
             </span>
           )}
           
-          {/* DEBUG: Always show subcategory info for every workflow */}
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300">
-            <ChevronRight className="h-3 w-3" />
-            DEBUG: {workflow.seoMetadata?.subcategory_id || 'NO_SUBCAT'}
-          </span>
           
           {/* Category hierarchy pills - only show if new data exists and has valid names */}
           {workflow.seoMetadata?.category_id && (() => {
@@ -513,30 +508,18 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
             const categoryId = workflow.seoMetadata.category_id;
             const Icon = categoryIcons[categoryId];
             
-            console.log('Category processing:', {
-              categoryId,
-              categoryName,
-              hasIcon: !!Icon,
-              iconName: Icon?.name
-            });
             
             return categoryName ? (
               <>
                 {/* Main category in black pill with white text and icon */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
                   {Icon && <Icon className="h-3 w-3" />}
-                  {categoryName}
+                  {displayCategoryName}
                 </span>
                 
-                {/* Subcategory - bright colored pill for visibility */}
+                {/* Subcategory pill */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  console.log('Subcategory processing:', {
-                    subcategoryId: workflow.seoMetadata.subcategory_id,
-                    subcategoryName,
-                    sessionId: workflow.session_id,
-                    willRender: true
-                  });
                   
                   // Create better fallback names based on known subcategory IDs
                   let displayName = subcategoryName;
@@ -556,33 +539,22 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                       'cat_6_sub_1': 'Customer Support',
                       'cat_6_sub_2': 'Retention Campaigns'
                     };
-                    displayName = subcategoryMap[workflow.seoMetadata.subcategory_id] || `Sub: ${workflow.seoMetadata.subcategory_id}`;
+                    displayName = subcategoryMap[workflow.seoMetadata.subcategory_id] || workflow.seoMetadata.subcategory_id;
                   }
                   
-                  console.log('Subcategory final display:', {
-                    displayName,
-                    rendering: 'BLUE PILL'
-                  });
-                  
                   return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-2 border-blue-300">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       <ChevronRight className="h-3 w-3" />
                       {displayName}
                     </span>
                   );
                 })()}
-                
-                {/* FORCE RENDER: Always show a test subcategory pill */}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border-2 border-yellow-300">
-                  <ChevronRight className="h-3 w-3" />
-                  FORCE: Test Subcategory
-                </span>
               </>
-            ) : null;
+            );
           })()}
           
-          {/* Fallback to old category field if no new data or invalid category_id */}
-          {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
+          {/* Fallback to old category field if no new data */}
+          {!workflow.seoMetadata?.category_id && workflow.seoMetadata?.category && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
               <Zap className="h-3 w-3" />
               {workflow.seoMetadata.category}
