@@ -488,14 +488,6 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       <div className="p-4 sm:p-5">
         {/* Top Pills - Vetted first, then Category hierarchy */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {/* Debug: Log all workflow metadata */}
-          {console.log('Full workflow metadata:', {
-            sessionId: workflow.session_id,
-            seoMetadata: workflow.seoMetadata,
-            hasCategory: !!workflow.seoMetadata?.category_id,
-            hasSubcategory: !!workflow.seoMetadata?.subcategory_id
-          })}
-          
           {/* Vetted badge - first position with green gradient */}
           {workflow.is_vetted && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-white" style={{
@@ -525,25 +517,19 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                 {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  console.log('Subcategory debug:', {
-                    subcategoryId: workflow.seoMetadata.subcategory_id,
-                    subcategoryName,
-                    categoryId: workflow.seoMetadata.category_id,
-                    allSeoData: workflow.seoMetadata
-                  });
-                  return subcategoryName ? (
+                  // If getSubcategoryName doesn't work, try to extract from the subcategory_id
+                  const fallbackSubcategoryName = subcategoryName || 
+                    (workflow.seoMetadata.subcategory_id.includes('sub_') ? 
+                      workflow.seoMetadata.subcategory_id.split('_').pop() : 
+                      workflow.seoMetadata.subcategory_id);
+                  
+                  return subcategoryName || fallbackSubcategoryName ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
                       <ChevronRight className="h-3 w-3" />
-                      {subcategoryName}
+                      {subcategoryName || fallbackSubcategoryName}
                     </span>
                   ) : null;
                 })()}
-                
-                {/* Temporary test subcategory pill - remove after debugging */}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border-2 border-yellow-300">
-                  <ChevronRight className="h-3 w-3" />
-                  Test Subcategory
-                </span>
               </>
             ) : null;
           })()}
