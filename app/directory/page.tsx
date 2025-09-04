@@ -488,6 +488,17 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       <div className="p-4 sm:p-5">
         {/* Top Pills - Vetted first, then Category hierarchy */}
         <div className="flex flex-wrap gap-2 mb-3">
+          {/* DEBUG: Log complete workflow data */}
+          {console.log('=== WORKFLOW CARD DEBUG ===', {
+            sessionId: workflow.session_id,
+            fullWorkflow: workflow,
+            seoMetadata: workflow.seoMetadata,
+            hasCategoryId: !!workflow.seoMetadata?.category_id,
+            hasSubcategoryId: !!workflow.seoMetadata?.subcategory_id,
+            categoryId: workflow.seoMetadata?.category_id,
+            subcategoryId: workflow.seoMetadata?.subcategory_id
+          })}
+          
           {/* Vetted badge - first position with green gradient */}
           {workflow.is_vetted && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-white" style={{
@@ -500,11 +511,24 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
             </span>
           )}
           
+          {/* DEBUG: Always show subcategory info for every workflow */}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300">
+            <ChevronRight className="h-3 w-3" />
+            DEBUG: {workflow.seoMetadata?.subcategory_id || 'NO_SUBCAT'}
+          </span>
+          
           {/* Category hierarchy pills - only show if new data exists and has valid names */}
           {workflow.seoMetadata?.category_id && (() => {
             const categoryName = getCategoryName(workflow.seoMetadata.category_id);
             const categoryId = workflow.seoMetadata.category_id;
             const Icon = categoryIcons[categoryId];
+            
+            console.log('Category processing:', {
+              categoryId,
+              categoryName,
+              hasIcon: !!Icon,
+              iconName: Icon?.name
+            });
             
             return categoryName ? (
               <>
@@ -514,50 +538,55 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                   {categoryName}
                 </span>
                 
-                {/* DEBUG: Always show subcategory info */}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border-2 border-red-300">
-                  <ChevronRight className="h-3 w-3" />
-                  DEBUG: {workflow.seoMetadata?.subcategory_id || 'NO_SUBCAT'}
-                </span>
-
                 {/* Subcategory - bright colored pill for visibility */}
-                {workflow.seoMetadata?.subcategory_id && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-2 border-blue-300">
-                    <ChevronRight className="h-3 w-3" />
-                    {(() => {
-                      const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                      console.log('Subcategory rendering:', {
-                        subcategoryId: workflow.seoMetadata.subcategory_id,
-                        subcategoryName,
-                        sessionId: workflow.session_id
-                      });
-                      
-                      // Create better fallback names based on known subcategory IDs
-                      if (subcategoryName) {
-                        return subcategoryName;
-                      }
-                      
-                      // Fallback mapping for known subcategory IDs
-                      const subcategoryMap: { [key: string]: string } = {
-                        'cat_1_sub_1': 'Paid Search',
-                        'cat_1_sub_2': 'Social Media Ads',
-                        'cat_2_sub_1': 'Blog Content',
-                        'cat_2_sub_2': 'Video Content',
-                        'cat_2_sub_3': 'SEO Content',
-                        'cat_3_sub_1': 'Lead Magnets',
-                        'cat_3_sub_2': 'Landing Pages',
-                        'cat_4_sub_1': 'Lead Scoring',
-                        'cat_4_sub_2': 'Sales Outreach',
-                        'cat_5_sub_1': 'SEO Optimization',
-                        'cat_5_sub_2': 'Content Marketing',
-                        'cat_6_sub_1': 'Customer Support',
-                        'cat_6_sub_2': 'Retention Campaigns'
-                      };
-                      
-                      return subcategoryMap[workflow.seoMetadata.subcategory_id] || `Sub: ${workflow.seoMetadata.subcategory_id}`;
-                    })()}
-                  </span>
-                )}
+                {workflow.seoMetadata?.subcategory_id && (() => {
+                  const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
+                  console.log('Subcategory processing:', {
+                    subcategoryId: workflow.seoMetadata.subcategory_id,
+                    subcategoryName,
+                    sessionId: workflow.session_id,
+                    willRender: true
+                  });
+                  
+                  // Create better fallback names based on known subcategory IDs
+                  let displayName = subcategoryName;
+                  if (!displayName) {
+                    const subcategoryMap: { [key: string]: string } = {
+                      'cat_1_sub_1': 'Paid Search',
+                      'cat_1_sub_2': 'Social Media Ads',
+                      'cat_2_sub_1': 'Blog Content',
+                      'cat_2_sub_2': 'Video Content',
+                      'cat_2_sub_3': 'SEO Content',
+                      'cat_3_sub_1': 'Lead Magnets',
+                      'cat_3_sub_2': 'Landing Pages',
+                      'cat_4_sub_1': 'Lead Scoring',
+                      'cat_4_sub_2': 'Sales Outreach',
+                      'cat_5_sub_1': 'SEO Optimization',
+                      'cat_5_sub_2': 'Content Marketing',
+                      'cat_6_sub_1': 'Customer Support',
+                      'cat_6_sub_2': 'Retention Campaigns'
+                    };
+                    displayName = subcategoryMap[workflow.seoMetadata.subcategory_id] || `Sub: ${workflow.seoMetadata.subcategory_id}`;
+                  }
+                  
+                  console.log('Subcategory final display:', {
+                    displayName,
+                    rendering: 'BLUE PILL'
+                  });
+                  
+                  return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-2 border-blue-300">
+                      <ChevronRight className="h-3 w-3" />
+                      {displayName}
+                    </span>
+                  );
+                })()}
+                
+                {/* FORCE RENDER: Always show a test subcategory pill */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border-2 border-yellow-300">
+                  <ChevronRight className="h-3 w-3" />
+                  FORCE: Test Subcategory
+                </span>
               </>
             ) : null;
           })()}
