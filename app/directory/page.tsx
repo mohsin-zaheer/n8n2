@@ -517,18 +517,32 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                 {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  // If getSubcategoryName doesn't work, try to extract from the subcategory_id
-                  const fallbackSubcategoryName = subcategoryName || 
-                    (workflow.seoMetadata.subcategory_id.includes('sub_') ? 
-                      workflow.seoMetadata.subcategory_id.split('_').pop() : 
-                      workflow.seoMetadata.subcategory_id);
+                  console.log('Subcategory debug:', {
+                    subcategoryId: workflow.seoMetadata.subcategory_id,
+                    subcategoryName,
+                    categoryId: workflow.seoMetadata.category_id
+                  });
                   
-                  return subcategoryName || fallbackSubcategoryName ? (
+                  // Create a better fallback name
+                  let displayName = subcategoryName;
+                  if (!displayName) {
+                    // Try to create a readable name from the ID
+                    if (workflow.seoMetadata.subcategory_id === 'cat_2_sub_2') {
+                      displayName = 'Video Content';
+                    } else if (workflow.seoMetadata.subcategory_id.includes('sub_')) {
+                      displayName = workflow.seoMetadata.subcategory_id.replace(/cat_\d+_sub_\d+/, 'Subcategory');
+                    } else {
+                      displayName = 'Subcategory';
+                    }
+                  }
+                  
+                  // Always show the subcategory pill if subcategory_id exists
+                  return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
                       <ChevronRight className="h-3 w-3" />
-                      {subcategoryName || fallbackSubcategoryName}
+                      {displayName}
                     </span>
-                  ) : null;
+                  );
                 })()}
               </>
             ) : null;
