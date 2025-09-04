@@ -54,7 +54,7 @@ const WorkflowDirectoryContent = () => {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'recent' | 'popular'>('relevance')
-  const [onlyVetted, setOnlyVetted] = useState(false)
+  const [OnlyVetted, setOnlyVetted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [dynamicCategories, setDynamicCategories] = useState<CategoryWithSubcategories[]>([])
   const itemsPerPage = 12
@@ -114,7 +114,7 @@ const WorkflowDirectoryContent = () => {
           q: debouncedSearchQuery,
           category: selectedCategory,
           sortBy,
-          vetted: onlyVetted.toString(),
+          vetted: OnlyVetted.toString(),
           page: currentPage.toString(),
           limit: itemsPerPage.toString()
         })
@@ -157,7 +157,7 @@ const WorkflowDirectoryContent = () => {
     }
 
     loadWorkflows()
-  }, [debouncedSearchQuery, selectedCategory, sortBy, onlyVetted, currentPage])
+  }, [debouncedSearchQuery, selectedCategory, sortBy, OnlyVetted, currentPage])
 
   // Since filtering is now done server-side, we can use workflows directly
   const filteredWorkflows = workflows
@@ -170,7 +170,7 @@ const WorkflowDirectoryContent = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedCategory, sortBy, onlyVetted])
+  }, [searchQuery, selectedCategory, sortBy, OnlyVetted])
 
   // Build categories list for dropdown - now with hierarchy
   const renderCategoryOptions = () => {
@@ -299,7 +299,7 @@ const WorkflowDirectoryContent = () => {
               <input
                 type="checkbox"
                 id="vetted-filter"
-                checked={onlyVetted}
+                checked={OnlyVetted}
                 onChange={(e) => setOnlyVetted(e.target.checked)}
                 className="h-4 w-4 text-[rgb(27,200,140)] focus:ring-[rgb(27,200,140)] border-gray-300 rounded"
               />
