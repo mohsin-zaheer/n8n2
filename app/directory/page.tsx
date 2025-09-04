@@ -105,7 +105,7 @@ const WorkflowDirectoryContent = () => {
         // Use server-side search API
         const params = new URLSearchParams({
           q: debouncedSearchQuery,
-          category: selectedCategory,
+          category: selectedCategory === 'all' ? '' : selectedCategory,
           sortBy,
           page: currentPage.toString(),
           limit: itemsPerPage.toString()
