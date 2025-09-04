@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q') || ''
     const category = searchParams.get('category') || 'all'
     const sortBy = searchParams.get('sortBy') || 'relevance'
+    const vetted = searchParams.get('vetted') === 'true'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = (page - 1) * limit
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
       query: query.trim() || undefined,
       category: category === 'all' ? undefined : category,
       sortBy: sortBy as 'relevance' | 'recent' | 'popular',
+      vetted: vetted || undefined,
       limit,
       offset
     })
