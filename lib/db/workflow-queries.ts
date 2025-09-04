@@ -326,11 +326,12 @@ export class WorkflowQueries {
     query?: string;
     category?: string;
     sortBy?: 'relevance' | 'recent' | 'popular';
+    vetted?: boolean;
     limit?: number;
     offset?: number;
   }): Promise<{ workflows: WorkflowBySlugResponse[]; total: number }> {
     try {
-      const { query, category, sortBy = 'recent', limit = 10, offset = 0 } = options;
+      const { query, category, sortBy = 'recent', vetted, limit = 10, offset = 0 } = options;
 
       // Build the base query
       let supabaseQuery = this.supabase
@@ -348,6 +349,11 @@ export class WorkflowQueries {
         `, { count: 'exact' })
         .not("state", "is", null)
         .neq("archived", true);
+
+      // Apply vetted filter if specified
+      if (vetted === true) {
+        supabaseQuery = supabaseQuery.eq("is_vetted", true);
+      }
 
       // Apply text search if query provided
       if (query && query.trim()) {
