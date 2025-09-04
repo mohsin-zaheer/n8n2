@@ -444,7 +444,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
               <>
                 {/* Main category in green gradient pill */}
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
-                  background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+                  background: 'linear-gradient(122deg, rgb(1, 152, 115) 0%, rgb(27, 200, 140) 50%, rgb(1, 147, 147) 100%)'
                 }}>
                   {categoryName}
                 </span>
@@ -465,7 +465,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
           {/* Fallback to old category field if no new data or invalid category_id */}
           {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
-              background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+              background: 'linear-gradient(122deg, rgb(1, 152, 115) 0%, rgb(27, 200, 140) 50%, rgb(1, 147, 147) 100%)'
             }}>
               {workflow.seoMetadata.category}
             </span>
@@ -474,7 +474,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
           {/* Default category if no category data at all */}
           {!workflow.seoMetadata?.category_id && !workflow.seoMetadata?.category && (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
-              background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+              background: 'linear-gradient(122deg, rgb(1, 152, 115) 0%, rgb(27, 200, 140) 50%, rgb(1, 147, 147) 100%)'
             }}>
               Automation
             </span>
