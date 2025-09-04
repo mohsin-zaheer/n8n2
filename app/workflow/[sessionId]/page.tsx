@@ -141,9 +141,19 @@ export default function WorkflowStatusPage() {
       if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
       setError("");
 
-      // Stop polling if complete
-      if (data.complete && seoSlugRef.current) {
-        router.push(`/w/${seoSlugRef.current}`);
+      // Stop polling if complete and redirect
+      if (data.complete) {
+        if (seoSlugRef.current) {
+          // Small delay to show completion state briefly
+          setTimeout(() => {
+            router.push(`/w/${seoSlugRef.current}`);
+          }, 1500);
+        } else {
+          // Fallback if no SEO slug
+          setTimeout(() => {
+            router.push(`/workflow/${sessionId}?complete=true`);
+          }, 1500);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch status:", err);
@@ -342,6 +352,12 @@ export default function WorkflowStatusPage() {
       initialRevealDelayRef.current = null;
     }
 
+    // If we have nodes and we're past discovery, show all nodes immediately
+    if (selectedNodes.length > 0 && phase !== "discovery") {
+      setVisibleCount(selectedNodes.length);
+      return;
+    }
+
     const continueReveal =
       phase === "discovery" ||
       (phase === "configuration" && visibleCount < selectedNodes.length);
@@ -364,13 +380,13 @@ export default function WorkflowStatusPage() {
           }
           return prev + 1;
         });
-      }, 1400);
+      }, 800); // Faster reveal for better UX
     };
 
-    if (visibleCount === 0) {
+    if (visibleCount === 0 && phase === "discovery") {
       initialRevealDelayRef.current = setTimeout(() => {
         startInterval();
-      }, 1200);
+      }, 800); // Shorter delay
     } else {
       startInterval();
     }
@@ -535,27 +551,38 @@ export default function WorkflowStatusPage() {
     };
   }, [phase]);
 
-  // Phase mapping for chips
-  const stillDiscoveringUI =
-    !revealLockedRef.current &&
-    (phase === "discovery" ||
-      ((phase === "configuration" || phase === "building") &&
-        visibleCount < selectedNodes.length));
-
-  const allPolished =
-    selectedNodes.length > 0 &&
-    selectedNodes.every((n) => polishedIds.has(n.id));
-
-  const progressStep: "discovering" | "configuring" | "building" | "polishing" =
-    stillDiscoveringUI
-      ? "discovering"
-      : allPolished || phase === "validation" || phase === "documentation"
-      ? "polishing"
-      : phase === "configuration" || phase === "building"
-      ? visibleCount >= selectedNodes.length
-        ? "building"
-        : "configuring"
-      : "polishing";
+  // Phase mapping for chips - simplified and more reliable
+  const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
+    if (complete) return "polishing"; // Show as complete
+    
+    // If we're in discovery and have no nodes yet, show discovering
+    if (phase === "discovery" && selectedNodes.length === 0) {
+      return "discovering";
+    }
+    
+    // If we're in discovery but have nodes, show configuring (transitioning)
+    if (phase === "discovery" && selectedNodes.length > 0) {
+      return "configuring";
+    }
+    
+    // Configuration phase
+    if (phase === "configuration") {
+      return "configuring";
+    }
+    
+    // Building phase
+    if (phase === "building") {
+      return "building";
+    }
+    
+    // Validation and documentation phases
+    if (phase === "validation" || phase === "documentation") {
+      return "polishing";
+    }
+    
+    // Default fallback
+    return "configuring";
+  })();
 
   // Derive staged NodeGrid props from API
   const simplifyIconName = (nodeType: string) => {
@@ -734,8 +761,8 @@ export default function WorkflowStatusPage() {
               </div>
             )}
 
-            {/* Discovery preloader */}
-            {phase === "discovery" && visibleCount === 0 && (
+            {/* Discovery preloader - only show if truly in discovery with no nodes yet */}
+            {phase === "discovery" && selectedNodes.length === 0 && visibleCount === 0 && (
               <div className="mb-6 flex min-h-[300px] items-center justify-center">
                 <div className="flex flex-col items-center gap-6">
                   {/* n8n pulse animation */}
@@ -760,11 +787,31 @@ export default function WorkflowStatusPage() {
                   {/* Enhanced animated progress indicator */}
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-[rgb(236,244,240)] rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-[rgb(236,244,240)] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-[rgb(236,244,240)] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                     <span className="text-xs text-neutral-500 ml-2">Finding the best nodes...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Completion state */}
+            {complete && (
+              <div className="mb-6 flex min-h-[300px] items-center justify-center">
+                <div className="flex flex-col items-center gap-6">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  
+                  <div className="text-center">
+                    <h3 className="text-xl font-semibold text-neutral-900 mb-2">
+                      Workflow Complete!
+                    </h3>
+                    <p className="text-sm text-neutral-600 max-w-md leading-relaxed">
+                      Your workflow has been successfully generated and is ready to use. Redirecting you to the final workflow...
+                    </p>
                   </div>
                 </div>
               </div>
