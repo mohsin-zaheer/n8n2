@@ -351,20 +351,12 @@ export class WorkflowQueries {
       // Apply text search if query provided
       if (query && query.trim()) {
         // Search in multiple fields using OR conditions
-        supabaseQuery = supabaseQuery.or(`
-          state->seo->>title.ilike.%${query}%,
-          state->seo->>description.ilike.%${query}%,
-          state->workflow->settings->>name.ilike.%${query}%,
-          user_prompt.ilike.%${query}%
-        `);
+        supabaseQuery = supabaseQuery.or(`state->seo->>title.ilike.%${query}%,state->seo->>description.ilike.%${query}%,state->workflow->settings->>name.ilike.%${query}%,user_prompt.ilike.%${query}%`);
       }
 
       // Apply category filter
       if (category && category !== 'all') {
-        supabaseQuery = supabaseQuery.or(`
-          state->seo->>category_id.eq.${category},
-          state->seo->>category.eq.${category}
-        `);
+        supabaseQuery = supabaseQuery.or(`state->seo->>category_id.eq.${category},state->seo->>category.eq.${category}`);
       }
 
       // Apply sorting
