@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
+import Image from 'next/image';
 
 interface UserAvatarProps {
   user: User;
@@ -50,9 +51,11 @@ export function UserAvatar({ user }: UserAvatarProps) {
         aria-label="User menu"
         aria-expanded={isOpen}
       >
-        <img
+        <Image
           src={user.user_metadata?.avatar_url || '/default-avatar.svg'}
           alt={user.user_metadata?.full_name || user.email || 'User'}
+          width={32}
+          height={32}
           className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-700 object-cover"
         />
       </button>

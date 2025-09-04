@@ -226,6 +226,7 @@ const NodeIcon = memo(
       onLoad,
       onError,
       onVariantDetected,
+      isDarkVariant,
     ]);
 
     const sizeClasses = {

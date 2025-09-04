@@ -150,7 +150,7 @@ export default function WorkflowStatusPage() {
       setError("Failed to connect to server");
       setLoading(false);
     }
-  }, [sessionId, router]);
+  }, [sessionId, router, phase, handlePendingWorkflow]);
 
   // Handle pending workflow creation for authenticated users
   const handlePendingWorkflow = async () => {
@@ -479,7 +479,7 @@ export default function WorkflowStatusPage() {
       polishTimeoutRef.current = null;
       // Keep queue/polishedIds as-is
     };
-  }, [phase, selectedNodes.map((n) => n.id).join("|"), polishedIds]);
+  }, [phase, selectedNodes, polishedIds]);
 
   // Humor toasts during configuration and polishing
   useEffect(() => {
