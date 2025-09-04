@@ -488,12 +488,22 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       <div className="p-4 sm:p-5">
         {/* Top Pills - Vetted first, then Category hierarchy */}
         <div className="flex flex-wrap gap-2 mb-3">
+          {/* Debug: Log all workflow metadata */}
+          {console.log('Full workflow metadata:', {
+            sessionId: workflow.session_id,
+            seoMetadata: workflow.seoMetadata,
+            hasCategory: !!workflow.seoMetadata?.category_id,
+            hasSubcategory: !!workflow.seoMetadata?.subcategory_id
+          })}
+          
           {/* Vetted badge - first position with green gradient */}
           {workflow.is_vetted && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-white" style={{
               background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
             }}>
-              <Image src="/assets/check.svg" alt='checkmark' width={20} height={20} style={{marginRight: '-5px', marginTop: '-3px'}}/>
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
               Vetted workflow
             </span>
           )}
@@ -518,7 +528,8 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                   console.log('Subcategory debug:', {
                     subcategoryId: workflow.seoMetadata.subcategory_id,
                     subcategoryName,
-                    categoryId: workflow.seoMetadata.category_id
+                    categoryId: workflow.seoMetadata.category_id,
+                    allSeoData: workflow.seoMetadata
                   });
                   return subcategoryName ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
@@ -527,6 +538,12 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                     </span>
                   ) : null;
                 })()}
+                
+                {/* Temporary test subcategory pill - remove after debugging */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border-2 border-yellow-300">
+                  <ChevronRight className="h-3 w-3" />
+                  Test Subcategory
+                </span>
               </>
             ) : null;
           })()}
