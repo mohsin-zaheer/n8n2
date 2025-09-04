@@ -192,11 +192,16 @@ const WorkflowDirectoryContent = () => {
         </option>
       );
 
-      // Add subcategories (indented)
+      // Add subcategories (indented with visual indicator)
       if (mainCategory.subcategories && mainCategory.subcategories.length > 0) {
         mainCategory.subcategories.forEach(subCategory => {
           options.push(
-            <option key={subCategory.id} value={subCategory.id} className="pl-4" style={{ paddingLeft: '1rem' }}>
+            <option 
+              key={subCategory.id} 
+              value={subCategory.id} 
+              className="text-gray-600"
+              style={{ paddingLeft: '1.5rem' }}
+            >
               ↳ {subCategory.name}
             </option>
           );
