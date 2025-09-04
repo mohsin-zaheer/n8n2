@@ -514,12 +514,17 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                   {categoryName}
                 </span>
                 
-                {/* Subcategory - white with black border */}
+                {/* Subcategory - bright colored pill for visibility */}
                 {workflow.seoMetadata?.subcategory_id && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-2 border-blue-300">
                     <ChevronRight className="h-3 w-3" />
                     {(() => {
                       const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
+                      console.log('Subcategory rendering:', {
+                        subcategoryId: workflow.seoMetadata.subcategory_id,
+                        subcategoryName,
+                        sessionId: workflow.session_id
+                      });
                       
                       // Create better fallback names based on known subcategory IDs
                       if (subcategoryName) {
@@ -543,7 +548,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                         'cat_6_sub_2': 'Retention Campaigns'
                       };
                       
-                      return subcategoryMap[workflow.seoMetadata.subcategory_id] || 'Subcategory';
+                      return subcategoryMap[workflow.seoMetadata.subcategory_id] || `Sub: ${workflow.seoMetadata.subcategory_id}`;
                     })()}
                   </span>
                 )}
