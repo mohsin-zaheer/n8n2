@@ -490,10 +490,13 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
         <div className="flex flex-wrap gap-2 mb-3">
           {/* Vetted badge - first position with green gradient */}
           {workflow.is_vetted && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white" style={{
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-white" style={{
               background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
             }}>
-               Vetted workflow
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Vetted workflow
             </span>
           )}
           
@@ -526,14 +529,16 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
           
           {/* Fallback to old category field if no new data or invalid category_id */}
           {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+              <Zap className="h-3 w-3" />
               {workflow.seoMetadata.category}
             </span>
           )}
           
           {/* Default category if no category data at all */}
           {!workflow.seoMetadata?.category_id && !workflow.seoMetadata?.category && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
+              <Zap className="h-3 w-3" />
               Automation
             </span>
           )}
