@@ -264,6 +264,7 @@ const WorkflowDirectoryContent = () => {
                 const mainCat = dynamicCategories.find(cat => cat.id === selectedCategory);
                 if (mainCat && categoryIcons[mainCat.id]) {
                   const Icon = categoryIcons[mainCat.id];
+                  
                   return (
                     <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
                       <Icon className="h-4 w-4" />
