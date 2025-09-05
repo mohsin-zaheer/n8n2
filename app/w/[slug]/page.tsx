@@ -242,7 +242,6 @@ export default async function WorkflowPublicPage({
                         metadata={metadata}
                         status={status}
                         requiresAuth={requiresAuth}
-                        getIconName={getIconName}
                       />
                     );
                   })}

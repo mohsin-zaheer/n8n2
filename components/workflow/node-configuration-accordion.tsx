@@ -41,16 +41,23 @@ export interface NodeConfigurationAccordionProps {
   metadata?: NodeMetadata;
   status: string;
   requiresAuth: boolean;
-  getIconName: (nodeType: string) => string;
 }
 
 export function NodeConfigurationAccordion({ 
   node, 
   metadata, 
   status, 
-  requiresAuth, 
-  getIconName 
+  requiresAuth
 }: NodeConfigurationAccordionProps) {
+  const getIconName = (nodeType: string) => {
+    const base = nodeType
+      .replace("n8n-nodes-base.", "")
+      .replace("@n8n/n8n-nodes-langchain.", "")
+      .replace("nodes-base.", "")
+      .replace("nodes-langchain.", "")
+      .split(".")[0];
+    return resolveIconName(base);
+  };
   const hasParameters = metadata?.key_parameters && metadata.key_parameters.length > 0;
   const hasSettings = metadata?.essential_settings && metadata.essential_settings.length > 0;
   const isConfigured = node.parameters && Object.keys(node.parameters).length > 0;
