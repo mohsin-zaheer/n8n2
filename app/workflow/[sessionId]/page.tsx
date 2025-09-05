@@ -236,13 +236,15 @@ export default function WorkflowStatusPage() {
 
       // Update phase progress with detailed messages
       const updatePhaseProgress = (currentPhase: string, nodeCount: number = 0) => {
+        console.log(`Updating phase progress: ${currentPhase} with ${nodeCount} nodes`);
+        
         switch (currentPhase) {
           case "discovery":
             if (nodeCount > 0) {
               setPhaseProgress({
                 current: "discovery",
-                message: `Found ${nodeCount} workflow nodes`,
-                details: "Analyzing your requirements and selecting the best integrations..."
+                message: `Discovery complete - Found ${nodeCount} nodes`,
+                details: "Moving to configuration phase..."
               });
             } else {
               setPhaseProgress({
@@ -335,8 +337,8 @@ export default function WorkflowStatusPage() {
     const getPollingInterval = () => {
       if (complete) return 10000; // Slow down when complete
       if (phase === "discovery" && selectedNodes.length === 0) return 2000; // Fast during initial discovery
-      if (phase === "configuration" || phase === "building") return 3000; // Medium during processing
-      return 5000; // Default
+      if (phase === "configuration" || phase === "building" || phase === "validation") return 2000; // Fast during processing
+      return 3000; // Default - faster than before
     };
 
     const interval = setInterval(() => {
@@ -627,10 +629,10 @@ export default function WorkflowStatusPage() {
   const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
     if (complete) return "polishing"; // Show as complete
     
-    // Map phases more accurately
+    // Map phases more accurately - trust the backend phase value
     switch (phase) {
       case "discovery":
-        return selectedNodes.length === 0 ? "discovering" : "configuring";
+        return "discovering";
       case "configuration":
         return "configuring";
       case "building":
@@ -639,9 +641,10 @@ export default function WorkflowStatusPage() {
       case "documentation":
         return "polishing";
       default:
-        // Handle any unknown phases
+        // Handle any unknown phases - default based on nodes
         if (selectedNodes.length === 0) return "discovering";
-        return "configuring";
+        if (selectedNodes.length > 0) return "configuring";
+        return "discovering";
     }
   })();
 
