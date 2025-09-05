@@ -9,13 +9,21 @@ export async function GET(request: Request) {
   
   try {
     console.log('=== AUTH CALLBACK START ===');
-    console.log('Request URL:', request.url);
+    console.log('Request URL (internal):', request.url);
     
     const { searchParams, origin: requestOrigin } = new URL(request.url);
     
     // Check for forwarded host from nginx proxy
     const forwardedHost = request.headers.get('x-forwarded-host');
     const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    
+    console.log('Headers:', {
+      'x-forwarded-host': forwardedHost,
+      'x-forwarded-proto': forwardedProto,
+      'x-forwarded-for': forwardedFor,
+      'host': request.headers.get('host')
+    });
     
     if (forwardedHost) {
       origin = `${forwardedProto}://${forwardedHost}`;
@@ -24,6 +32,12 @@ export async function GET(request: Request) {
       origin = requestOrigin;
       console.log('Using request origin:', origin);
     }
+    
+    // Construct the external URL that users would see
+    const externalUrl = forwardedHost 
+      ? `${forwardedProto}://${forwardedHost}${new URL(request.url).pathname}${new URL(request.url).search}`
+      : request.url;
+    console.log('External URL (what users see):', externalUrl);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const redirectTo = searchParams.get('redirectTo') || '/';
