@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, Suspense, useCallback, memo, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Search, Filter, X, Clock, Users, Zap, User, ChevronRight, ChevronDown, Check } from 'lucide-react'
 import { WorkflowQueries } from '@/lib/db/workflow-queries'
@@ -46,6 +46,7 @@ const useDebounce = (value: string, delay: number) => {
 
 const WorkflowDirectoryContent = () => {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [workflows, setWorkflows] = useState<WorkflowSearchResult[]>([])
@@ -245,6 +246,21 @@ const WorkflowDirectoryContent = () => {
     setCategorySearchQuery('')
   }
 
+  const handleVettedChange = (checked: boolean) => {
+    setOnlyVetted(checked)
+    
+    // Update URL
+    const params = new URLSearchParams(searchParams.toString())
+    if (checked) {
+      params.set('vetted', 'true')
+    } else {
+      params.delete('vetted')
+    }
+    
+    const newUrl = params.toString() ? `/directory?${params.toString()}` : '/directory'
+    router.push(newUrl, { scroll: false })
+  }
+
   return (
     <div className="min-h-screen bg-[rgb(236,244,240)]">
       <div className="max-w-screen-xl mx-auto px-4 py-4 sm:py-8">
@@ -410,7 +426,7 @@ const WorkflowDirectoryContent = () => {
                 type="checkbox"
                 id="vetted-filter"
                 checked={onlyVetted}
-                onChange={(e) => setOnlyVetted(e.target.checked)}
+                onChange={(e) => handleVettedChange(e.target.checked)}
                 className="h-4 w-4 text-[rgb(27,200,140)] focus:ring-[rgb(27,200,140)] border-gray-300 rounded"
               />
               <label htmlFor="vetted-filter" className="text-sm text-gray-700 cursor-pointer select-none">
