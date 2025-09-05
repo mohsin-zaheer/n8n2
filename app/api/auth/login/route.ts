@@ -3,7 +3,7 @@ import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  let origin: string;
+  let origin: string = '';
   
   try {
     const { searchParams, origin: requestOrigin } = new URL(request.url);
