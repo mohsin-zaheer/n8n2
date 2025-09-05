@@ -431,9 +431,11 @@ export default async function WorkflowPublicPage({
                   <h3 className="text-sm font-semibold text-neutral-900 mb-2">
                     Get help to set this up
                   </h3>
+                  <a href="https://www.ghostteam.ai/begin?utm_source=n8ngrowthagents" >
                   <button className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium">
                     Book a call
                   </button>
+                  </a> 
                 </div>
               )}
             </div>
