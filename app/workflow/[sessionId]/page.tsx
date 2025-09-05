@@ -135,8 +135,16 @@ export default function WorkflowStatusPage() {
       const data = await response.json();
       
       // Update state based on response
-      setPhase(data.phase || "discovery");
-      setComplete(data.complete || false);
+      const newPhase = data.phase || "discovery";
+      const isComplete = data.complete || false;
+      
+      // Only update phase if it's actually different to prevent unnecessary re-renders
+      if (newPhase !== phase) {
+        console.log(`Phase transition: ${phase} → ${newPhase}`);
+        setPhase(newPhase);
+      }
+      
+      setComplete(isComplete);
       setPrompt(data.prompt || "");
       setLoading(false);
 
@@ -144,10 +152,11 @@ export default function WorkflowStatusPage() {
       if (data.phaseProgress) {
         setPhaseProgress(data.phaseProgress);
       } else {
-        // Fallback progress messages
+        // Fallback progress messages based on actual phase
+        const phaseMessage = PHASE_DESCRIPTIONS[newPhase as keyof typeof PHASE_DESCRIPTIONS] || "Processing...";
         setPhaseProgress({
-          current: data.phase || "discovery",
-          message: PHASE_DESCRIPTIONS[data.phase as keyof typeof PHASE_DESCRIPTIONS] || "Processing...",
+          current: newPhase,
+          message: phaseMessage,
         });
       }
 
@@ -163,13 +172,17 @@ export default function WorkflowStatusPage() {
         setSelectedNodes(data.selectedNodes);
       }
 
-      // Handle SEO slug for redirect
-      if (data.complete && data.seoSlug && !seoSlugRef.current) {
-        seoSlugRef.current = data.seoSlug;
-        // Redirect to the final workflow page after a brief delay
-        setTimeout(() => {
-          router.push(`/w/${data.seoSlug}`);
-        }, 2000);
+      // Handle completion and SEO slug for redirect
+      if (isComplete) {
+        console.log('Workflow completed, checking for SEO slug:', data.seoSlug);
+        if (data.seoSlug && !seoSlugRef.current) {
+          seoSlugRef.current = data.seoSlug;
+          console.log('Redirecting to final workflow page:', `/w/${data.seoSlug}`);
+          // Redirect to the final workflow page after a brief delay
+          setTimeout(() => {
+            router.push(`/w/${data.seoSlug}`);
+          }, 2000);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch status:", err);
@@ -289,13 +302,14 @@ export default function WorkflowStatusPage() {
     // Poll more frequently during active phases for better UX
     const getPollingInterval = () => {
       if (complete) return 10000; // Slow down when complete
-      if (phase === "discovery" && selectedNodes.length === 0) return 2000; // Fast during initial discovery
-      if (phase === "configuration" || phase === "building" || phase === "validation") return 2000; // Fast during processing
-      return 3000; // Default - faster than before
+      if (phase === "discovery" && selectedNodes.length === 0) return 1500; // Very fast during initial discovery
+      if (phase === "configuration" || phase === "building" || phase === "validation" || phase === "documentation") return 1500; // Fast during processing
+      return 2000; // Default - faster polling
     };
 
     const interval = setInterval(() => {
       if (!complete) {
+        console.log('Polling status - current phase:', phase, 'complete:', complete);
         fetchStatus();
       }
     }, getPollingInterval());
@@ -580,20 +594,30 @@ export default function WorkflowStatusPage() {
 
   // Phase mapping for chips - more accurate mapping
   const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
-    if (complete) return "polishing"; // Show as complete
+    console.log('Determining progress step - phase:', phase, 'complete:', complete, 'selectedNodes:', selectedNodes.length);
+    
+    if (complete) {
+      console.log('Workflow is complete, showing polishing');
+      return "polishing";
+    }
     
     // Map phases more accurately - trust the backend phase value
     switch (phase) {
       case "discovery":
+        console.log('Phase is discovery, showing discovering');
         return "discovering";
       case "configuration":
+        console.log('Phase is configuration, showing configuring');
         return "configuring";
       case "building":
+        console.log('Phase is building, showing building');
         return "building";
       case "validation":
       case "documentation":
+        console.log('Phase is validation/documentation, showing polishing');
         return "polishing";
       default:
+        console.log('Unknown phase, defaulting based on nodes');
         // Handle any unknown phases - default based on nodes
         if (selectedNodes.length === 0) return "discovering";
         if (selectedNodes.length > 0) return "configuring";
