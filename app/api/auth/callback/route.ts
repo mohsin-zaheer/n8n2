@@ -90,7 +90,9 @@ export async function GET(request: Request) {
       throw exchangeError;
     }
 
-    // Handle workflow redirect cookie
+    // Temporarily disable extra cookie to test nginx header size limits
+    // TODO: Re-enable after fixing nginx proxy buffer configuration
+    /*
     if (redirectTo.startsWith('/workflow/')) {
       console.log('Setting workflow authentication cookie...');
       try {
@@ -108,6 +110,7 @@ export async function GET(request: Request) {
         // Continue without the cookie - not critical
       }
     }
+    */
     
     const redirectUrl = `${origin}${redirectTo}`;
     console.log('Redirecting to:', redirectUrl);
