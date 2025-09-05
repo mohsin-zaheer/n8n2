@@ -314,17 +314,26 @@ export default function WorkflowStatusPage() {
       setError("");
 
       // Stop polling if complete and redirect
-      if (data.complete) {
-        if (seoSlugRef.current) {
+      if (data.complete && !complete) {
+        // Only redirect if this is the first time we're seeing completion
+        console.log('Workflow completed, preparing redirect...', {
+          seoSlug: data.seoSlug || seoSlugRef.current,
+          sessionId
+        });
+        
+        if (data.seoSlug || seoSlugRef.current) {
+          const slug = data.seoSlug || seoSlugRef.current;
           // Small delay to show completion state briefly
           setTimeout(() => {
-            router.push(`/w/${seoSlugRef.current}`);
-          }, 1500);
+            console.log('Redirecting to workflow page:', `/w/${slug}`);
+            router.push(`/w/${slug}`);
+          }, 2000); // Slightly longer delay to ensure UI updates
         } else {
           // Fallback if no SEO slug
           setTimeout(() => {
+            console.log('Redirecting to fallback workflow page');
             router.push(`/workflow/${sessionId}?complete=true`);
-          }, 1500);
+          }, 2000);
         }
       }
     } catch (err) {
@@ -353,13 +362,11 @@ export default function WorkflowStatusPage() {
     };
 
     const interval = setInterval(() => {
-      if (!complete) {
-        fetchStatus();
-      }
+      fetchStatus(); // Always fetch status, let fetchStatus handle completion logic
     }, getPollingInterval());
 
     return () => clearInterval(interval);
-  }, [sessionId, complete, fetchStatus]);
+  }, [sessionId, complete, phase, selectedNodes.length, fetchStatus]);
 
   // Load discovery icons on mount
   useEffect(() => {
