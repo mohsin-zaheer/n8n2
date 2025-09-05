@@ -437,6 +437,9 @@ const WorkflowCardSkeleton = () => (
 
 // Workflow Card Component - Memoized for performance
 const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workflow }) => {
+  // Console log SEO metadata for debugging
+  console.log('SEO Metadata for workflow:', workflow.session_id, workflow.seoMetadata);
+  
   // Real user data from Supabase
   const user = workflow.user ? {
     name: workflow.user.full_name || workflow.user.email,
