@@ -437,46 +437,29 @@ export default function WorkflowStatusPage() {
     return () => clearInterval(interval);
   }, [sessionId, complete, phase, selectedNodes.length, fetchStatus]);
 
-  // Load discovery icons from backend
+  // Load discovery icons - use session nodes when available, fallback to common icons
   useEffect(() => {
-    const loadDiscoveryIcons = async () => {
-      try {
-        // Try to get real node types from the current session first
-        if (selectedNodes.length > 0) {
-          const nodeTypes = selectedNodes.map(node => simplifyIconName(node.nodeType));
-          setDiscoveryIcons(nodeTypes);
-          setCurrentDiscoveryIcon(nodeTypes[Math.floor(Math.random() * nodeTypes.length)]);
-          return;
-        }
+    const loadDiscoveryIcons = () => {
+      // If we have nodes from the session, use those
+      if (selectedNodes.length > 0) {
+        const nodeTypes = selectedNodes.map(node => simplifyIconName(node.nodeType));
+        setDiscoveryIcons(nodeTypes);
+        setCurrentDiscoveryIcon(nodeTypes[Math.floor(Math.random() * nodeTypes.length)]);
+        return;
+      }
 
-        // If no session nodes yet, try to get available node types from backend
-        const response = await fetch('/api/nodes/available');
-        if (response.ok) {
-          const data = await response.json();
-          const nodeTypes = data.nodeTypes || [];
-          if (nodeTypes.length > 0) {
-            setDiscoveryIcons(nodeTypes);
-            setCurrentDiscoveryIcon(nodeTypes[Math.floor(Math.random() * nodeTypes.length)]);
-            return;
-          }
-        }
-
-        // Fallback only if backend is unavailable
-        const fallbackIcons = [
-          'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
-          'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split',
-          'openAi', 'anthropic', 'airtable', 'github', 'trello', 'asana'
-        ];
-        setDiscoveryIcons(fallbackIcons);
-        if (fallbackIcons.length > 0) {
-          setCurrentDiscoveryIcon(fallbackIcons[Math.floor(Math.random() * fallbackIcons.length)]);
-        }
-      } catch (error) {
-        console.error('Failed to load discovery icons from backend:', error);
-        // Use minimal fallback on error
-        const fallbackIcons = ['webhook', 'code', 'schedule'];
-        setDiscoveryIcons(fallbackIcons);
-        setCurrentDiscoveryIcon(fallbackIcons[0]);
+      // Use common n8n node types for discovery animation
+      const commonIcons = [
+        'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
+        'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split',
+        'openAi', 'anthropic', 'airtable', 'github', 'trello', 'asana',
+        'facebookGraphApi', 'youTube', 'googleAds', 'splitInBatches',
+        'mysql', 'postgres', 'mongodb', 'redis', 'aws', 'azure'
+      ];
+      
+      setDiscoveryIcons(commonIcons);
+      if (commonIcons.length > 0) {
+        setCurrentDiscoveryIcon(commonIcons[Math.floor(Math.random() * commonIcons.length)]);
       }
     };
 
@@ -667,7 +650,7 @@ export default function WorkflowStatusPage() {
     };
   }, [phase, selectedNodes, polishedIds]);
 
-  // Real-time status messages from backend during processing phases
+  // Status messages during processing phases - use phase-based messages
   useEffect(() => {
     const isEngagementPhase =
       phase === "configuration" ||
@@ -680,42 +663,53 @@ export default function WorkflowStatusPage() {
       return;
     }
 
-    const fetchStatusMessages = async () => {
-      try {
-        // Get real-time status messages from backend
-        const response = await fetch(`/api/workflow/${sessionId}/status-messages`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.messages && data.messages.length > 0) {
-            humorMessagesRef.current = data.messages;
-          } else {
-            // Fallback to static messages if backend doesn't provide any
-            humorMessagesRef.current = [
-              "Connecting the dots...",
-              "Optimizing workflow logic...",
-              "Fine-tuning integrations...",
-              "Almost there..."
-            ];
-          }
-        } else {
-          // Use minimal fallback messages
-          humorMessagesRef.current = [
+    // Use phase-specific messages instead of fetching from backend
+    const getPhaseMessages = (currentPhase: string) => {
+      switch (currentPhase) {
+        case "configuration":
+          return [
+            "Configuring node parameters...",
+            "Setting up integrations...",
+            "Optimizing connections...",
+            "Fine-tuning settings..."
+          ];
+        case "building":
+          return [
+            "Building workflow structure...",
+            "Creating connections...",
+            "Organizing workflow logic...",
+            "Almost ready..."
+          ];
+        case "validation":
+          return [
+            "Validating configurations...",
+            "Checking connections...",
+            "Fixing any issues...",
+            "Ensuring everything works..."
+          ];
+        case "documentation":
+          return [
+            "Adding documentation...",
+            "Finalizing workflow...",
+            "Preparing for deployment...",
+            "Almost complete..."
+          ];
+        default:
+          return [
             "Processing...",
             "Working on it...",
             "Almost ready..."
           ];
-        }
-      } catch (error) {
-        console.error('Failed to fetch status messages:', error);
-        humorMessagesRef.current = ["Processing your workflow..."];
       }
     };
+
+    humorMessagesRef.current = getPhaseMessages(phase);
 
     const scheduleNextMessage = () => {
       if (!humorMessagesRef.current || humorMessagesRef.current.length === 0)
         return;
       // Show messages less frequently to avoid spam
-      const delay = 6000 + Math.floor(Math.random() * 4000); // 6-10s
+      const delay = 8000 + Math.floor(Math.random() * 4000); // 8-12s
       humorTimerRef.current = setTimeout(() => {
         const msgs = humorMessagesRef.current!;
         const msg = msgs[Math.floor(Math.random() * msgs.length)];
@@ -726,13 +720,13 @@ export default function WorkflowStatusPage() {
       }, delay);
     };
 
-    fetchStatusMessages().then(scheduleNextMessage);
+    scheduleNextMessage();
 
     return () => {
       if (humorTimerRef.current) clearTimeout(humorTimerRef.current);
       humorTimerRef.current = null;
     };
-  }, [phase, sessionId]);
+  }, [phase]);
 
   // Phase mapping for chips - more accurate mapping
   const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
