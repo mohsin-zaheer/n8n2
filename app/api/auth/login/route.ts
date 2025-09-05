@@ -2,6 +2,8 @@ import { createServerClientInstance } from '@/lib/supabase';
 import { getURL } from '@/lib/utils/url';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   let origin: string = '';
   
