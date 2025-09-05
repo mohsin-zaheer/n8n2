@@ -96,103 +96,8 @@ export default function WorkflowStatusPage() {
   const [currentDiscoveryIcon, setCurrentDiscoveryIcon] = useState<string>("");
   const discoveryIconTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Create a ref to hold the handlePendingWorkflow function
-  const handlePendingWorkflowRef = useRef<() => Promise<void>>();
-
-  // Define fetchStatus first
-  const fetchStatus = useCallback(async (): Promise<void> => {
-    try {
-      let url = `/api/workflow/${sessionId}/state`;
-      if (typeof window !== "undefined") {
-        const incoming = new URLSearchParams(window.location.search);
-        const normalized = new URLSearchParams();
-        const rawPhase = incoming.get("phase");
-        if (rawPhase) {
-          normalized.set("phase", rawPhase.split("?")[0]);
-        }
-        const clarifyParam =
-          incoming.get("clarify") ?? incoming.get("clarification");
-        if (clarifyParam === "1" || clarifyParam === "true") {
-          normalized.set("clarify", "1");
-        }
-        const qs = normalized.toString();
-        if (qs) url += `?${qs}`;
-      }
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // defer to handlePendingWorkflow if defined
-          await handlePendingWorkflowRef.current?.();
-          return;
-        } else {
-          setError("Failed to fetch status");
-        }
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-      
-      // Update state based on response
-      const newPhase = data.phase || "discovery";
-      const isComplete = data.complete || false;
-      
-      // Only update phase if it's actually different to prevent unnecessary re-renders
-      if (newPhase !== phase) {
-        console.log(`Phase transition: ${phase} → ${newPhase}`);
-        setPhase(newPhase);
-      }
-      
-      setComplete(isComplete);
-      setPrompt(data.prompt || "");
-      setLoading(false);
-
-      // Handle phase progress updates
-      if (data.phaseProgress) {
-        setPhaseProgress(data.phaseProgress);
-      } else {
-        // Fallback progress messages based on actual phase
-        const phaseMessage = PHASE_DESCRIPTIONS[newPhase as keyof typeof PHASE_DESCRIPTIONS] || "Processing...";
-        setPhaseProgress({
-          current: newPhase,
-          message: phaseMessage,
-        });
-      }
-
-      // Handle pending clarifications
-      if (data.pendingClarification) {
-        setPendingClarification(data.pendingClarification);
-      } else {
-        setPendingClarification(null);
-      }
-
-      // Handle selected nodes
-      if (data.selectedNodes && Array.isArray(data.selectedNodes)) {
-        setSelectedNodes(data.selectedNodes);
-      }
-
-      // Handle completion and SEO slug for redirect
-      if (isComplete) {
-        console.log('Workflow completed, checking for SEO slug:', data.seoSlug);
-        if (data.seoSlug && !seoSlugRef.current) {
-          seoSlugRef.current = data.seoSlug;
-          console.log('Redirecting to final workflow page:', `/w/${data.seoSlug}`);
-          // Redirect to the final workflow page after a brief delay
-          setTimeout(() => {
-            router.push(`/w/${data.seoSlug}`);
-          }, 2000);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch status:", err);
-      setError("Failed to connect to server");
-      setLoading(false);
-    }
-  }, [sessionId, router]);
-
   // Handle pending workflow creation for authenticated users
-  const handlePendingWorkflow = useCallback(async (): Promise<void> => {
+  const handlePendingWorkflow = useCallback(async () => {
     try {
       const supabase = createClient();
 
@@ -251,6 +156,9 @@ export default function WorkflowStatusPage() {
 
       console.log('Creating workflow with prompt:', promptData.prompt);
 
+      // No need to update database since we're using direct localStorage format
+      console.log('Using direct session format, no database update needed');
+
       // Create the workflow with the stored prompt
       const res = await fetch("/api/workflow/create", {
         method: "POST",
@@ -274,20 +182,146 @@ export default function WorkflowStatusPage() {
       sessionStorage.removeItem("pending_workflow_session");
 
       // Start polling for status
-      await fetchStatus();
+      fetchStatus();
     } catch (err: any) {
       console.error("Error creating workflow from pending session:", err);
       setError(err.message || "Failed to create workflow");
       setLoading(false);
     }
-  }, [sessionId, fetchStatus]);
+  }, [sessionId, router]);
 
-  // Keep the ref updated
-  useEffect(() => {
-    handlePendingWorkflowRef.current = handlePendingWorkflow;
-  }, [handlePendingWorkflow]);
+  const fetchStatus = useCallback(async () => {
+    try {
+      let url = `/api/workflow/${sessionId}/state`;
+      if (typeof window !== "undefined") {
+        const incoming = new URLSearchParams(window.location.search);
+        const normalized = new URLSearchParams();
+        const rawPhase = incoming.get("phase");
+        if (rawPhase) {
+          // In case of malformed URLs like ?phase=discovery?clarify=1
+          normalized.set("phase", rawPhase.split("?")[0]);
+        }
+        const clarifyParam =
+          incoming.get("clarify") ?? incoming.get("clarification");
+        if (clarifyParam === "1" || clarifyParam === "true") {
+          normalized.set("clarify", "1");
+        }
+        const qs = normalized.toString();
+        if (qs) url += `?${qs}`;
+      }
+      const response = await fetch(url);
 
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Check if this is a pending workflow that needs to be created
+          await handlePendingWorkflow();
+          return;
+        } else {
+          setError("Failed to fetch status");
+        }
+        setLoading(false);
+        return;
+      }
 
+      const data = await response.json();
+
+      // Debug logging for phase transitions
+      if (data.phase !== phase) {
+        console.log(`Phase transition: ${phase} -> ${data.phase}`, {
+          selectedNodes: data.selectedNodes?.length || 0,
+          complete: data.complete,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Update phase progress with detailed messages
+      const updatePhaseProgress = (currentPhase: string, nodeCount: number = 0) => {
+        console.log(`Updating phase progress: ${currentPhase} with ${nodeCount} nodes`);
+        
+        switch (currentPhase) {
+          case "discovery":
+            if (nodeCount > 0) {
+              setPhaseProgress({
+                current: "discovery",
+                message: `Discovery complete - Found ${nodeCount} nodes`,
+                details: "Moving to configuration phase..."
+              });
+            } else {
+              setPhaseProgress({
+                current: "discovery",
+                message: "Discovering workflow nodes...",
+                details: "AI is exploring thousands of integrations to build your perfect workflow"
+              });
+            }
+            break;
+          case "configuration":
+            setPhaseProgress({
+              current: "configuration",
+              message: `Configuring ${nodeCount} nodes...`,
+              details: "Setting up parameters and connections for each integration"
+            });
+            break;
+          case "building":
+            setPhaseProgress({
+              current: "building",
+              message: "Building workflow structure...",
+              details: "Creating connections and organizing workflow logic"
+            });
+            break;
+          case "validation":
+            setPhaseProgress({
+              current: "validation",
+              message: "Validating workflow...",
+              details: "Checking all configurations and ensuring everything works correctly"
+            });
+            break;
+          case "documentation":
+            setPhaseProgress({
+              current: "documentation",
+              message: "Finalizing workflow...",
+              details: "Adding documentation and preparing your workflow for use"
+            });
+            break;
+          default:
+            setPhaseProgress({
+              current: currentPhase,
+              message: `Processing ${currentPhase}...`,
+              details: "Working on your workflow..."
+            });
+        }
+      };
+
+      updatePhaseProgress(data.phase, data.selectedNodes?.length || 0);
+
+      setPhase(data.phase);
+      setComplete(data.complete);
+      setPrompt(data.prompt || "");
+      setPendingClarification(data.pendingClarification);
+      setSelectedNodes(data.selectedNodes || []);
+      setLoading(false);
+      if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
+      setError("");
+
+      // Stop polling if complete and redirect
+      if (data.complete) {
+        if (seoSlugRef.current) {
+          // Small delay to show completion state briefly
+          setTimeout(() => {
+            router.push(`/w/${seoSlugRef.current}`);
+          }, 1500);
+        } else {
+          // Fallback if no SEO slug
+          setTimeout(() => {
+            router.push(`/workflow/${sessionId}?complete=true`);
+          }, 1500);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch status:", err);
+      setError("Failed to connect to server");
+      setLoading(false);
+    }
+  }, [sessionId, router, phase, handlePendingWorkflow]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -302,20 +336,19 @@ export default function WorkflowStatusPage() {
     // Poll more frequently during active phases for better UX
     const getPollingInterval = () => {
       if (complete) return 10000; // Slow down when complete
-      if (phase === "discovery" && selectedNodes.length === 0) return 1500; // Very fast during initial discovery
-      if (phase === "configuration" || phase === "building" || phase === "validation" || phase === "documentation") return 1500; // Fast during processing
-      return 2000; // Default - faster polling
+      if (phase === "discovery" && selectedNodes.length === 0) return 2000; // Fast during initial discovery
+      if (phase === "configuration" || phase === "building" || phase === "validation") return 2000; // Fast during processing
+      return 3000; // Default - faster than before
     };
 
     const interval = setInterval(() => {
       if (!complete) {
-        console.log('Polling status - current phase:', phase, 'complete:', complete);
         fetchStatus();
       }
     }, getPollingInterval());
 
     return () => clearInterval(interval);
-  }, [sessionId, complete, fetchStatus, phase, selectedNodes.length]);
+  }, [sessionId, complete, fetchStatus]);
 
   // Load discovery icons on mount
   useEffect(() => {
@@ -594,30 +627,20 @@ export default function WorkflowStatusPage() {
 
   // Phase mapping for chips - more accurate mapping
   const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
-    console.log('Determining progress step - phase:', phase, 'complete:', complete, 'selectedNodes:', selectedNodes.length);
-    
-    if (complete) {
-      console.log('Workflow is complete, showing polishing');
-      return "polishing";
-    }
+    if (complete) return "polishing"; // Show as complete
     
     // Map phases more accurately - trust the backend phase value
     switch (phase) {
       case "discovery":
-        console.log('Phase is discovery, showing discovering');
         return "discovering";
       case "configuration":
-        console.log('Phase is configuration, showing configuring');
         return "configuring";
       case "building":
-        console.log('Phase is building, showing building');
         return "building";
       case "validation":
       case "documentation":
-        console.log('Phase is validation/documentation, showing polishing');
         return "polishing";
       default:
-        console.log('Unknown phase, defaulting based on nodes');
         // Handle any unknown phases - default based on nodes
         if (selectedNodes.length === 0) return "discovering";
         if (selectedNodes.length > 0) return "configuring";
