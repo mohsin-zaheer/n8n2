@@ -441,7 +441,6 @@ const WorkflowCardSkeleton = () => (
 // Workflow Card Component - Memoized for performance
 const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult; dynamicCategories: CategoryWithSubcategories[] }> = memo(({ workflow, dynamicCategories }) => {
   // Console log SEO metadata for debugging
-  console.log('SEO Metadata for workflow:', workflow.session_id, workflow.seoMetadata);
   
   // Real user data from Supabase
   const user = workflow.user ? {
