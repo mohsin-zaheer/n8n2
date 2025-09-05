@@ -503,50 +503,48 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult; dynamicCategories
           
           {/* Category hierarchy pills - show new format if category_id exists */}
           {workflow.seoMetadata?.category_id && (() => {
-            const categoryName = getCategoryName(workflow.seoMetadata.category_id);
             const categoryId = workflow.seoMetadata.category_id;
             const Icon = categoryIcons[categoryId];
             
-            console.log('Category lookup:', {
-              categoryId: workflow.seoMetadata.category_id,
-              categoryName,
-              subcategoryId: workflow.seoMetadata.subcategory_id,
-              subcategoryName: workflow.seoMetadata.subcategory_id ? getSubcategoryName(workflow.seoMetadata.subcategory_id) : null,
-              dynamicCategories: dynamicCategories.length
-            });
+            // Find category name directly from dynamicCategories
+            let categoryName = getCategoryName(categoryId);
+            if (!categoryName && dynamicCategories.length > 0) {
+              const foundCategory = dynamicCategories.find(cat => cat.id === categoryId);
+              categoryName = foundCategory?.name || '';
+            }
             
             return (
               <>
                 {/* Main category in black pill with white text and icon */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
                   {Icon && <Icon className="h-3 w-3" />}
-                  {categoryName || workflow.seoMetadata.category_id}
+                  {categoryName || categoryId}
                 </span>
                 
                 {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
-                  const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
+                  const subcategoryId = workflow.seoMetadata.subcategory_id;
                   
-                  // Try to find subcategory name from dynamicCategories if helper function fails
-                  let finalSubcategoryName = subcategoryName;
-                  if (!finalSubcategoryName && dynamicCategories.length > 0) {
+                  // Find subcategory name directly from dynamicCategories
+                  let subcategoryName = getSubcategoryName(subcategoryId);
+                  if (!subcategoryName && dynamicCategories.length > 0) {
                     for (const category of dynamicCategories) {
                       if (category.subcategories) {
-                        const foundSubcat = category.subcategories.find((sub: Category) => sub.id === workflow.seoMetadata?.subcategory_id);
+                        const foundSubcat = category.subcategories.find(sub => sub.id === subcategoryId);
                         if (foundSubcat) {
-                          finalSubcategoryName = foundSubcat.name;
+                          subcategoryName = foundSubcat.name;
                           break;
                         }
                       }
                     }
                   }
                   
-                  return (
+                  return subcategoryName ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
                       <ChevronRight className="h-3 w-3" />
-                      {finalSubcategoryName || workflow.seoMetadata.subcategory_id}
+                      {subcategoryName}
                     </span>
-                  );
+                  ) : null;
                 })()}
               </>
             );
