@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  let origin: string;
+  let origin: string = '';
   
   try {
     const { searchParams, origin: requestOrigin } = new URL(request.url);
