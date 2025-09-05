@@ -188,7 +188,7 @@ export default function WorkflowStatusPage() {
       setError(err.message || "Failed to create workflow");
       setLoading(false);
     }
-  }, [sessionId, router, fetchStatus]);
+  }, [sessionId, fetchStatus]);
 
   const fetchStatus = useCallback(async () => {
     try {
