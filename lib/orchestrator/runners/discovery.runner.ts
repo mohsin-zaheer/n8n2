@@ -383,7 +383,7 @@ export class DiscoveryRunner
             );
           })();
           
-          const seoMetadata = await Promise.race([seoPromise, seoTimeout]);
+          const seoMetadata = await Promise.race([seoPromise, seoTimeout]) as any;
           
           // Add SEO operation to persist it
           allOperations.push({
