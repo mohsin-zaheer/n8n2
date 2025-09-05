@@ -81,7 +81,7 @@ const WorkflowDirectoryContent = () => {
     if (vettedParam === 'true') {
       setOnlyVetted(true)
     }
-  }, []) // Remove searchParams dependency to run only once on mount
+  }, [searchParams]) // Add searchParams back to satisfy ESLint
 
   // Load categories on component mount
   useEffect(() => {
