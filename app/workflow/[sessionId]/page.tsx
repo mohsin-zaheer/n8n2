@@ -115,7 +115,7 @@ export default function WorkflowStatusPage() {
       const pendingSessionData = localStorage.getItem("pending_workflow_session") || 
                                 sessionStorage.getItem("pending_workflow_session");
       
-      console.log('handlePendingWorkflow - pendingSessionData:', pendingSessionData);
+      
       
       if (!pendingSessionData) {
         console.error("No pending session data found");
@@ -127,11 +127,11 @@ export default function WorkflowStatusPage() {
       let promptData;
       try {
         const parsedData = JSON.parse(pendingSessionData);
-        console.log('Parsed pending session data:', parsedData);
+       
         
         // Check if this is the new direct format with prompt and workflowSessionId
         if (parsedData.prompt && parsedData.workflowSessionId) {
-          console.log('Using data from parsed session (direct format)');
+         
           promptData = parsedData;
         } else {
           console.error("Invalid session data format:", parsedData);
@@ -154,10 +154,6 @@ export default function WorkflowStatusPage() {
         return;
       }
 
-      console.log('Creating workflow with prompt:', promptData.prompt);
-
-      // No need to update database since we're using direct localStorage format
-      console.log('Using direct session format, no database update needed');
 
       // Create the workflow with the stored prompt
       const res = await fetch("/api/workflow/create", {
@@ -175,7 +171,7 @@ export default function WorkflowStatusPage() {
         throw new Error(`Failed to create workflow: ${res.status}`);
       }
 
-      console.log('Workflow created successfully');
+     
 
       // Clear the pending session from both storages
       localStorage.removeItem("pending_workflow_session");
@@ -193,7 +189,7 @@ export default function WorkflowStatusPage() {
   const fetchStatus = useCallback(async () => {
     // Don't fetch if we're already complete and have redirected
     if (complete && seoSlugRef.current) {
-      console.log('Skipping fetch - already complete and have SEO slug');
+
       return;
     }
 
@@ -216,7 +212,6 @@ export default function WorkflowStatusPage() {
         if (qs) url += `?${qs}`;
       }
       
-      console.log('Fetching status from:', url);
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -232,15 +227,7 @@ export default function WorkflowStatusPage() {
       }
 
       const data = await response.json();
-      console.log('Received status data:', {
-        phase: data.phase,
-        complete: data.complete,
-        selectedNodes: data.selectedNodes?.length || 0,
-        seoSlug: data.seoSlug,
-        progress: data.progress,
-        progressMessage: data.progressMessage,
-        rawData: data // Log full response for debugging
-      });
+   
 
       // Store latest status for progress bar calculation
       sessionStorage.setItem(`workflow_status_${sessionId}`, JSON.stringify(data));
@@ -256,18 +243,9 @@ export default function WorkflowStatusPage() {
         ? data.selectedNodes.length 
         : (typeof data.selectedNodes === 'number' ? data.selectedNodes : 0);
       
-      console.log('Processed node count:', nodeCount, 'from:', data.selectedNodes);
+    
 
-      // Debug logging for phase transitions
-      if (data.phase !== phase || data.complete !== complete) {
-        console.log(`Phase transition: ${phase} -> ${data.phase}`, {
-          selectedNodes: data.selectedNodes?.length || 0,
-          complete: data.complete,
-          previousComplete: complete,
-          timestamp: new Date().toISOString(),
-          seoSlug: data.seoSlug
-        });
-      }
+
 
       // Early detection of stuck states
       if (data.phase === phase && data.selectedNodes?.length === selectedNodes.length && !data.complete) {
@@ -296,20 +274,14 @@ export default function WorkflowStatusPage() {
         ? data.selectedNodes.length 
         : (typeof data.selectedNodes === 'number' ? data.selectedNodes : 0);
 
-      console.log('Setting state:', { 
-        newPhase, 
-        isComplete, 
-        nodeCount: processedNodeCount,
-        previousPhase: phase,
-        previousComplete: complete 
-      });
+   
 
       setPhase(newPhase);
       setComplete(isComplete);
 
       // Update phase progress with real-time backend data
       const updatePhaseProgress = (currentPhase: string, isComplete: boolean, nodeCount: number = 0, backendData: any = {}) => {
-        console.log(`Updating phase progress: ${currentPhase} with ${nodeCount} nodes, complete: ${isComplete}`);
+        
         
         if (isComplete) {
           setPhaseProgress({
@@ -399,7 +371,6 @@ export default function WorkflowStatusPage() {
         ? data.selectedNodes 
         : [];
       
-      console.log('Setting selectedNodes:', nodes);
       setSelectedNodes(nodes);
       setLoading(false);
       if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
@@ -408,29 +379,26 @@ export default function WorkflowStatusPage() {
       // Handle completion and redirect
       if (isComplete && !complete) {
         // Only redirect if this is the first time we're seeing completion
-        console.log('Workflow completed, preparing redirect...', {
-          seoSlug: data.seoSlug || seoSlugRef.current,
-          sessionId
-        });
+       
         
         if (data.seoSlug || seoSlugRef.current) {
           const slug = data.seoSlug || seoSlugRef.current;
           // Small delay to show completion state briefly
           setTimeout(() => {
-            console.log('Redirecting to workflow page:', `/w/${slug}`);
+            
             router.push(`/w/${slug}`);
           }, 1500); // Shorter delay for better UX
         } else {
           // Fallback if no SEO slug - wait a bit longer for slug to appear
           setTimeout(() => {
-            console.log('No SEO slug yet, checking again...');
+          
             fetchStatus(); // Try one more time to get the slug
           }, 1000);
           
           // Ultimate fallback after additional wait
           setTimeout(() => {
             if (!seoSlugRef.current) {
-              console.log('Redirecting to fallback workflow page');
+             
               router.push(`/workflow/${sessionId}?complete=true`);
             }
           }, 3000);
