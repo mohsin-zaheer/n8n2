@@ -72,7 +72,17 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
           const filteredCategories = hierarchy.filter(cat => cat.id !== 'cat_8');
           setCategories(filteredCategories);
         } else {
-          setCategories(categoriesData || []);
+          // Transform Supabase data to match CategoryWithSubcategories interface
+          const transformedCategories = (categoriesData || []).map(cat => ({
+            ...cat,
+            parent_id: null,
+            level: 0,
+            items: [],
+            display_order: 0,
+            created_at: new Date().toISOString(),
+            subcategories: cat.subcategories || []
+          }));
+          setCategories(transformedCategories);
         }
       } catch (error) {
         console.error('Error loading categories:', error);
