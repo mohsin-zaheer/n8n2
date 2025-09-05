@@ -96,6 +96,88 @@ export default function WorkflowStatusPage() {
   const [currentDiscoveryIcon, setCurrentDiscoveryIcon] = useState<string>("");
   const discoveryIconTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Create a ref to hold the handlePendingWorkflow function
+  const handlePendingWorkflowRef = useRef<() => Promise<void>>();
+
+  // Define fetchStatus first
+  const fetchStatus = useCallback(async (): Promise<void> => {
+    try {
+      let url = `/api/workflow/${sessionId}/state`;
+      if (typeof window !== "undefined") {
+        const incoming = new URLSearchParams(window.location.search);
+        const normalized = new URLSearchParams();
+        const rawPhase = incoming.get("phase");
+        if (rawPhase) {
+          normalized.set("phase", rawPhase.split("?")[0]);
+        }
+        const clarifyParam =
+          incoming.get("clarify") ?? incoming.get("clarification");
+        if (clarifyParam === "1" || clarifyParam === "true") {
+          normalized.set("clarify", "1");
+        }
+        const qs = normalized.toString();
+        if (qs) url += `?${qs}`;
+      }
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // defer to handlePendingWorkflow if defined
+          await handlePendingWorkflowRef.current?.();
+          return;
+        } else {
+          setError("Failed to fetch status");
+        }
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      
+      // Update state based on response
+      setPhase(data.phase || "discovery");
+      setComplete(data.complete || false);
+      setPrompt(data.prompt || "");
+      setLoading(false);
+
+      // Handle phase progress updates
+      if (data.phaseProgress) {
+        setPhaseProgress(data.phaseProgress);
+      } else {
+        // Fallback progress messages
+        setPhaseProgress({
+          current: data.phase || "discovery",
+          message: PHASE_DESCRIPTIONS[data.phase as keyof typeof PHASE_DESCRIPTIONS] || "Processing...",
+        });
+      }
+
+      // Handle pending clarifications
+      if (data.pendingClarification) {
+        setPendingClarification(data.pendingClarification);
+      } else {
+        setPendingClarification(null);
+      }
+
+      // Handle selected nodes
+      if (data.selectedNodes && Array.isArray(data.selectedNodes)) {
+        setSelectedNodes(data.selectedNodes);
+      }
+
+      // Handle SEO slug for redirect
+      if (data.complete && data.seoSlug && !seoSlugRef.current) {
+        seoSlugRef.current = data.seoSlug;
+        // Redirect to the final workflow page after a brief delay
+        setTimeout(() => {
+          router.push(`/w/${data.seoSlug}`);
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Failed to fetch status:", err);
+      setError("Failed to connect to server");
+      setLoading(false);
+    }
+  }, [sessionId, router]);
+
   // Handle pending workflow creation for authenticated users
   const handlePendingWorkflow = useCallback(async (): Promise<void> => {
     try {
@@ -156,9 +238,6 @@ export default function WorkflowStatusPage() {
 
       console.log('Creating workflow with prompt:', promptData.prompt);
 
-      // No need to update database since we're using direct localStorage format
-      console.log('Using direct session format, no database update needed');
-
       // Create the workflow with the stored prompt
       const res = await fetch("/api/workflow/create", {
         method: "POST",
@@ -182,124 +261,18 @@ export default function WorkflowStatusPage() {
       sessionStorage.removeItem("pending_workflow_session");
 
       // Start polling for status
-      fetchStatus();
+      await fetchStatus();
     } catch (err: any) {
       console.error("Error creating workflow from pending session:", err);
       setError(err.message || "Failed to create workflow");
       setLoading(false);
     }
   }, [sessionId, fetchStatus]);
-  
 
-  // Define fetchStatus first, but without handlePendingWorkflow inside
-const fetchStatus = useCallback(async (): Promise<void> => {
-  try {
-    let url = `/api/workflow/${sessionId}/state`;
-    if (typeof window !== "undefined") {
-      const incoming = new URLSearchParams(window.location.search);
-      const normalized = new URLSearchParams();
-      const rawPhase = incoming.get("phase");
-      if (rawPhase) {
-        normalized.set("phase", rawPhase.split("?")[0]);
-      }
-      const clarifyParam =
-        incoming.get("clarify") ?? incoming.get("clarification");
-      if (clarifyParam === "1" || clarifyParam === "true") {
-        normalized.set("clarify", "1");
-      }
-      const qs = normalized.toString();
-      if (qs) url += `?${qs}`;
-    }
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        // defer to handlePendingWorkflow if defined
-        await handlePendingWorkflowRef.current?.();
-        return;
-      } else {
-        setError("Failed to fetch status");
-      }
-      setLoading(false);
-      return;
-    }
-
-    const data = await response.json();
-    // ... rest of your logic unchanged ...
-  } catch (err) {
-    console.error("Failed to fetch status:", err);
-    setError("Failed to connect to server");
-    setLoading(false);
-  }
-}, [sessionId, router, phase]);
-
-// Create a ref to hold the function
-const handlePendingWorkflowRef = useRef<() => Promise<void>>();
-
-const handlePendingWorkflow = useCallback(async (): Promise<void> => {
-  try {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setError("Session not found");
-      setLoading(false);
-      return;
-    }
-
-    const pendingSessionData =
-      localStorage.getItem("pending_workflow_session") ||
-      sessionStorage.getItem("pending_workflow_session");
-
-    if (!pendingSessionData) {
-      setError("Session not found");
-      setLoading(false);
-      return;
-    }
-
-    const parsedData = JSON.parse(pendingSessionData);
-    if (!parsedData.prompt || !parsedData.workflowSessionId) {
-      setError("Invalid session data format");
-      setLoading(false);
-      return;
-    }
-
-    if (parsedData.workflowSessionId !== sessionId) {
-      setError("Session mismatch");
-      setLoading(false);
-      return;
-    }
-
-    const res = await fetch("/api/workflow/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: parsedData.prompt,
-        sessionId,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to create workflow: ${res.status}`);
-    }
-
-    localStorage.removeItem("pending_workflow_session");
-    sessionStorage.removeItem("pending_workflow_session");
-
-    // Now safely call fetchStatus
-    await fetchStatus();
-  } catch (err: any) {
-    setError(err.message || "Failed to create workflow");
-    setLoading(false);
-  }
-}, [sessionId, fetchStatus]);
-
-// Keep the ref updated
-useEffect(() => {
-  handlePendingWorkflowRef.current = handlePendingWorkflow;
-}, [handlePendingWorkflow]);
+  // Keep the ref updated
+  useEffect(() => {
+    handlePendingWorkflowRef.current = handlePendingWorkflow;
+  }, [handlePendingWorkflow]);
 
 
 
