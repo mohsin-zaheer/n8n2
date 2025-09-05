@@ -34,20 +34,17 @@ export async function GET(request: Request) {
     const authPromise = (async () => {
       const supabase = await createServerClientInstance();
 
-      // Validate environment variables
-      const baseUrl = getURL();
-      if (!baseUrl) {
-        throw new Error('Base URL not configured');
-      }
-
-      console.log('Login route - base URL:', baseUrl);
+      // Use the same origin we detected for the callback URL
+      const callbackUrl = `${origin}/api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`;
+      
+      console.log('Login route - callback URL:', callbackUrl);
 
       // Supabase will handle /auth/v1/callback internally
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           // Send user back to the correct page after login
-          redirectTo: `${baseUrl}/api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          redirectTo: callbackUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
