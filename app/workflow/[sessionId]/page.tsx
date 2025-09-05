@@ -245,8 +245,29 @@ export default function WorkflowStatusPage() {
           selectedNodes: data.selectedNodes?.length || 0,
           complete: data.complete,
           previousComplete: complete,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          seoSlug: data.seoSlug
         });
+      }
+
+      // Early detection of stuck states
+      if (data.phase === phase && data.selectedNodes?.length === selectedNodes.length && !data.complete) {
+        // Same phase and node count - check if we've been stuck
+        const now = Date.now();
+        const stuckKey = `${data.phase}_${data.selectedNodes?.length || 0}`;
+        const lastChange = sessionStorage.getItem(`lastPhaseChange_${sessionId}`);
+        const lastChangeTime = lastChange ? parseInt(lastChange) : now;
+        
+        if (now - lastChangeTime > 60000) { // 1 minute stuck
+          console.warn(`Potentially stuck in ${data.phase} phase for over 1 minute`, {
+            phase: data.phase,
+            nodeCount: data.selectedNodes?.length || 0,
+            sessionId
+          });
+        }
+      } else {
+        // Phase or progress changed, update timestamp
+        sessionStorage.setItem(`lastPhaseChange_${sessionId}`, Date.now().toString());
       }
 
       // Update state first, then update progress messages
@@ -327,7 +348,7 @@ export default function WorkflowStatusPage() {
       if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
       setError("");
 
-      // Stop polling if complete and redirect
+      // Handle completion and redirect
       if (data.complete && !complete) {
         // Only redirect if this is the first time we're seeing completion
         console.log('Workflow completed, preparing redirect...', {
@@ -341,13 +362,21 @@ export default function WorkflowStatusPage() {
           setTimeout(() => {
             console.log('Redirecting to workflow page:', `/w/${slug}`);
             router.push(`/w/${slug}`);
-          }, 2000); // Slightly longer delay to ensure UI updates
+          }, 1500); // Shorter delay for better UX
         } else {
-          // Fallback if no SEO slug
+          // Fallback if no SEO slug - wait a bit longer for slug to appear
           setTimeout(() => {
-            console.log('Redirecting to fallback workflow page');
-            router.push(`/workflow/${sessionId}?complete=true`);
-          }, 2000);
+            console.log('No SEO slug yet, checking again...');
+            fetchStatus(); // Try one more time to get the slug
+          }, 1000);
+          
+          // Ultimate fallback after additional wait
+          setTimeout(() => {
+            if (!seoSlugRef.current) {
+              console.log('Redirecting to fallback workflow page');
+              router.push(`/workflow/${sessionId}?complete=true`);
+            }
+          }, 3000);
         }
       }
     } catch (err) {
@@ -367,16 +396,20 @@ export default function WorkflowStatusPage() {
     // Initial fetch
     fetchStatus();
 
-    // Poll more frequently during active phases for better UX
+    // Poll more efficiently based on phase and progress
     const getPollingInterval = () => {
-      if (complete) return 10000; // Slow down when complete
-      if (phase === "discovery" && selectedNodes.length === 0) return 2000; // Fast during initial discovery
-      if (phase === "configuration" || phase === "building" || phase === "validation") return 2000; // Fast during processing
-      return 3000; // Default - faster than before
+      if (complete) return 15000; // Much slower when complete
+      if (phase === "discovery" && selectedNodes.length === 0) return 3000; // Moderate during initial discovery
+      if (phase === "discovery" && selectedNodes.length > 0) return 5000; // Slower once nodes found
+      if (phase === "configuration" || phase === "building") return 4000; // Moderate during processing
+      if (phase === "validation" || phase === "documentation") return 5000; // Slower during final phases
+      return 4000; // Default
     };
 
     const interval = setInterval(() => {
-      fetchStatus(); // Always fetch status, let fetchStatus handle completion logic
+      if (!complete) { // Only poll if not complete
+        fetchStatus();
+      }
     }, getPollingInterval());
 
     return () => clearInterval(interval);
@@ -384,35 +417,17 @@ export default function WorkflowStatusPage() {
 
   // Load discovery icons on mount
   useEffect(() => {
-    const loadDiscoveryIcons = async () => {
-      try {
-        const response = await fetch('/api/icons/manifest');
-        if (response.ok) {
-          const manifest = await response.json();
-          const iconNames = manifest.icons?.map((icon: any) => icon.name) || [];
-          setDiscoveryIcons(iconNames);
-          if (iconNames.length > 0) {
-            setCurrentDiscoveryIcon(iconNames[Math.floor(Math.random() * iconNames.length)]);
-          }
-        } else {
-          // Fallback to common icon names if manifest fails
-          const fallbackIcons = [
-            'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
-            'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split',
-            'openAi', 'anthropic', 'airtable', 'github', 'trello', 'asana'
-          ];
-          setDiscoveryIcons(fallbackIcons);
-          setCurrentDiscoveryIcon(fallbackIcons[Math.floor(Math.random() * fallbackIcons.length)]);
-        }
-      } catch (error) {
-        console.error('Failed to load discovery icons:', error);
-        // Use fallback icons
-        const fallbackIcons = [
-          'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
-          'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split'
-        ];
-        setDiscoveryIcons(fallbackIcons);
-        setCurrentDiscoveryIcon(fallbackIcons[0]);
+    const loadDiscoveryIcons = () => {
+      // Use fallback icons directly since manifest endpoint doesn't exist
+      const fallbackIcons = [
+        'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
+        'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split',
+        'openAi', 'anthropic', 'airtable', 'github', 'trello', 'asana',
+        'facebookGraphApi', 'youTube', 'googleAds', 'splitInBatches'
+      ];
+      setDiscoveryIcons(fallbackIcons);
+      if (fallbackIcons.length > 0) {
+        setCurrentDiscoveryIcon(fallbackIcons[Math.floor(Math.random() * fallbackIcons.length)]);
       }
     };
 
@@ -672,13 +687,14 @@ export default function WorkflowStatusPage() {
         return "building";
       case "validation":
       case "documentation":
+      case "complete": // Handle complete phase explicitly
         return "polishing";
       default:
-        // Handle any unknown phases - default based on nodes and completion
+        // Handle any unknown phases - be more conservative
+        console.warn(`Unknown phase: ${phase}, defaulting based on state`);
         if (complete) return "polishing";
         if (selectedNodes.length === 0) return "discovering";
-        if (selectedNodes.length > 0) return "configuring";
-        return "discovering";
+        return "configuring";
     }
   })();
 
@@ -885,6 +901,13 @@ export default function WorkflowStatusPage() {
                         Exploring: {currentDiscoveryIcon.charAt(0).toUpperCase() + currentDiscoveryIcon.slice(1)}
                       </div>
                     )}
+                    
+                    {/* Debug info in development */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="mt-2 text-xs text-neutral-400">
+                        Session: {sessionId} | Nodes: {selectedNodes.length} | Complete: {complete ? 'Yes' : 'No'}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Enhanced animated progress indicator */}
@@ -899,6 +922,7 @@ export default function WorkflowStatusPage() {
                        phase === "configuration" ? "Configuring integrations..." :
                        phase === "building" ? "Building connections..." :
                        phase === "validation" ? "Validating workflow..." :
+                       phase === "documentation" ? "Adding documentation..." :
                        "Processing..."}
                     </span>
                   </div>
