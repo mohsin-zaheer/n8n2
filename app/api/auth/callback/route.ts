@@ -50,7 +50,7 @@ export async function GET(request: Request) {
       return authData;
     })();
 
-    const authData = await Promise.race([exchangePromise, timeoutPromise]);
+    const authData = await Promise.race([exchangePromise, timeoutPromise]) as any;
     
     console.log('Callback route - user authenticated:', authData.user?.id);
 
