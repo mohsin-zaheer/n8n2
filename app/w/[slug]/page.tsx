@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { NodeIcon } from "@/components/ui/node-icon";
 import { resolveIconName } from "@/lib/icon-aliases";
 import { VettedBadge } from "@/components/ui/vetted-badge";
-import { Download, Import } from "lucide-react";
-import { loadCategories, getCategoryName, getSubcategoryName } from "@/lib/services/category-helper.service";
+import { Download, ArrowLeft } from "lucide-react";
+import { loadCategories, getCategoryName, getSubcategoryName, categoryIcons } from "@/lib/services/category-helper.service";
 
 // Generate metadata for SEO
 export async function generateMetadata({
@@ -112,15 +112,24 @@ export default async function WorkflowPublicPage({
     ? workflow.nodes.filter((node: any) => {
         const base = String(node?.type || "")
           .replace("n8n-nodes-base.", "")
+          .replace("@n8n/n8n-nodes-langchain.", "")
           .replace("nodes-base.", "")
+          .replace("nodes-langchain.", "")
           .split(".")[0];
         return base !== "stickyNote";
       })
     : [];
+  
+  // Extract unique node types and fetch metadata from database
+  const nodeTypes = orderedNodes.map((node: any) => node.type);
+  const uniqueNodeTypes = [...new Set(nodeTypes)] as string[];
+  
   const getIconName = (nodeType: string) => {
     const base = nodeType
       .replace("n8n-nodes-base.", "")
+      .replace("@n8n/n8n-nodes-langchain.", "")
       .replace("nodes-base.", "")
+      .replace("nodes-langchain.", "")
       .split(".")[0];
     return resolveIconName(base);
   };
@@ -129,18 +138,20 @@ export default async function WorkflowPublicPage({
     <div className="min-h-[calc(100vh-60px)] bg-neutral-50">
       <div className="max-w-screen-lg mx-auto px-4 pt-7 sm:pt-8 md:pt-10 pb-8">
         {/* Action buttons row */}
-        <div className="flex justify-end gap-2 mb-4">
+        <div className="flex justify-between gap-2 mb-4">
+          <a href="/directory">
+            <Button variant="outline" className="border-black text-black hover:bg-gray-50">
+              <ArrowLeft className="mr-2 h-4 w-4" /> All workflows
+            </Button>
+          </a>
           <a
             href={`/api/workflow/${sessionId}/export`}
             download={`${seo?.slug || "workflow"}.json`}
           >
-            <Button>
+            <Button className="bg-black text-white hover:bg-gray-800">
               <Download className="mr-2 h-4 w-4" /> Download JSON
             </Button>
           </a>
-          <Button variant="secondary">
-            <Import className="mr-2 h-4 w-4" /> Import into n8n
-          </Button>
         </div>
 
         {/* Title directly on grey background */}
@@ -167,68 +178,118 @@ export default async function WorkflowPublicPage({
                   <p className="text-sm text-neutral-700">{userPrompt}</p>
                 </>
               )}
-              {seo?.businessValue && (
-                <div className="mt-4 flex items-center gap-2 flex-wrap">
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
-                    {seo.businessValue}
-                  </span>
-                  
-                  {/* Show category hierarchy if available */}
-                  {seo?.category_id ? (
-                    <>
-                      <span className="px-3 py-1 text-white rounded-full text-sm font-medium"
-                        style={{background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'}}>
-                        {getCategoryName(seo.category_id)}
-                      </span>
-                      
-                      {seo?.subcategory_id && (
-                        <span className="px-3 py-1 bg-white text-[rgb(27,200,140)] border border-[rgb(27,200,140)] rounded-full text-sm font-medium">
-                          {getSubcategoryName(seo.subcategory_id)}
+              {/* Category Section */}
+              {(seo?.category_id || seo?.category) && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold text-neutral-900 mb-2">
+                    Category
+                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {seo?.category_id ? (
+                      <>
+                        {/* Main category with icon */}
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-black text-white rounded-full text-sm font-medium">
+                          {(() => {
+                            const Icon = categoryIcons[seo.category_id];
+                            return Icon ? <Icon className="h-3 w-3" /> : null;
+                          })()}
+                          {getCategoryName(seo.category_id) || seo.category || 'Other'}
                         </span>
-                      )}
-                    </>
-                  ) : (
-                    /* Fallback to old category field if no new data */
-                    seo?.category && (
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        
+                        {/* Subcategory if different from main category */}
+                        {seo?.subcategory_id && seo.subcategory_id !== seo.category_id && (
+                          <>
+                            <span className="text-neutral-400">→</span>
+                            <span className="px-3 py-1 bg-white text-black border border-gray-300 rounded-full text-sm font-medium">
+                              {getSubcategoryName(seo.subcategory_id)}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      /* Fallback to old category field if no new data */
+                      <span className="px-3 py-1 bg-black text-white rounded-full text-sm font-medium">
                         {seo.category}
                       </span>
-                    )
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
             </div>
+            {/* Comprehensive Setup Guide - Will be created as separate component */}
             <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
-              <h2 className="text-lg font-semibold text-neutral-900 mb-1">
-                Guide
+              <h2 className="text-lg font-semibold text-neutral-900 mb-3">
+                Comprehensive Setup Guide
               </h2>
               <p className="text-sm text-neutral-600 mb-4">
-                Node by node setup guide
+                Step-by-step configuration guide with documentation links
               </p>
               {orderedNodes.length > 0 ? (
-                <ol className="space-y-3">
-                  {orderedNodes.map((node: any, idx: number) => (
-                    <li key={node.id ?? idx} className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        <NodeIcon
-                          name={getIconName(node.type)}
-                          size={20}
-                          className="h-6 w-6"
-                          forceBackground
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-neutral-900 truncate">
-                          {node.name ||
-                            node.type.replace("n8n-nodes-base.", "")}
+                <div className="space-y-4">
+                  {orderedNodes.map((node: any, idx: number) => {
+                    const nodeType = node.type;
+                    const requiresAuth = nodeType.includes('Gmail') || nodeType.includes('Slack') || nodeType.includes('Google') || nodeType.includes('Twitter') || nodeType.includes('LinkedIn');
+                    const status = requiresAuth ? 'Configuration Required' : 'Configured';
+                    
+                    return (
+                      <div key={node.id ?? idx} className="border border-neutral-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="mt-0.5">
+                            <NodeIcon
+                              name={getIconName(node.type)}
+                              size={24}
+                              className="h-6 w-6"
+                              forceBackground
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="text-sm font-medium text-neutral-900 truncate">
+                                {node.name || node.type.replace("n8n-nodes-base.", "")}
+                              </h3>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                status === 'Configured' 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : 'bg-orange-100 text-orange-700'
+                              }`}>
+                                {status}
+                              </span>
+                            </div>
+                            <div className="text-xs text-neutral-500 mb-2">
+                              {node.type.replace("n8n-nodes-base.", "")}
+                            </div>
+                            {requiresAuth && (
+                              <div className="text-xs text-orange-600 mb-2">
+                                Authentication required for this service
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-neutral-500 truncate">
-                          {node.type.replace("n8n-nodes-base.", "")}
+                        
+                        {/* Documentation Links */}
+                        <div className="flex gap-2 text-xs">
+                          <a 
+                            href={`https://docs.n8n.io/integrations/builtin/app-nodes/${getIconName(node.type).toLowerCase()}/`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Official Documentation
+                          </a>
+                          <span className="text-neutral-300">•</span>
+                          <a 
+                            href={`https://docs.n8n.io/integrations/builtin/app-nodes/${getIconName(node.type).toLowerCase()}/#configuration`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Configuration Guide
+                          </a>
                         </div>
                       </div>
-                    </li>
-                  ))}
-                </ol>
+                    );
+                  })}
+                </div>
               ) : (
                 <p className="text-sm text-neutral-500">No nodes found</p>
               )}
@@ -340,71 +401,85 @@ export default async function WorkflowPublicPage({
 
           {/* Right (1/3) - sticky on desktop, with padding under header */}
           <div className="md:col-span-1 md:sticky md:top-[76px] md:self-start">
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
+            <div className={`bg-white rounded-lg shadow-sm p-6 ${
+              workflowData.isVetted 
+                ? 'border-2 border-green-400 shadow-[0_0_20px_rgba(27,200,140,0.2)]' 
+                : 'border border-neutral-200'
+            }`}>
+              {/* Vetted Badge */}
               {workflowData.isVetted && (
                 <div className="mb-4">
-                  <VettedBadge className="w-full justify-center" />
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white w-full justify-center" style={{
+                    background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
+                  }}>
+                    ✓ Vetted workflow
+                  </span>
                 </div>
               )}
-              <h3 className="text-sm font-semibold text-neutral-900">
-                Details
+              
+              {/* Creator Section */}
+              <h3 className="text-sm font-semibold text-neutral-900 mb-3">
+                Created by
               </h3>
-              <dl className="mt-3 text-sm text-neutral-700 space-y-2">
-                <div className="flex justify-between">
-                  <dt className="text-neutral-500">Category</dt>
-                  <dd>{seo?.category || "Automation"}</dd>
-                </div>
-                {workflowData.user && (
-                  <div className="flex justify-between items-center">
-                    <dt className="text-neutral-500">Created by</dt>
-                    <dd className="flex items-center gap-2">
-                      {workflowData.user.avatar_url ? (
-                        <Image 
-                          src={workflowData.user.avatar_url} 
-                          alt={workflowData.user.full_name || workflowData.user.email}
-                          width={24}
-                          height={24}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-xs font-medium text-blue-600">
-                            {(() => {
-                              const fullName = workflowData.user.full_name;
-                              const email = workflowData.user.email;
-                              
-                              if (fullName) {
-                                const words = fullName.trim().split(/\s+/);
-                                if (words.length >= 2) {
-                                  return (words[0][0] + words[1][0]).toUpperCase();
-                                } else {
-                                  return words[0].slice(0, 2).toUpperCase();
-                                }
-                              } else if (email) {
-                                const emailPrefix = email.split('@')[0];
-                                return emailPrefix.slice(0, 2).toUpperCase();
-                              }
-                              
-                              return 'AU';
-                            })()}
-                          </span>
-                        </div>
-                      )}
-                      <span className="text-sm">
-                        {workflowData.user.full_name || workflowData.user.email}
+              
+              {workflowData.user && (
+                <div className="flex items-start gap-3 mb-4">
+                  {/* Larger Avatar */}
+                  {workflowData.user.avatar_url ? (
+                    <Image 
+                      src={workflowData.user.avatar_url} 
+                      alt={workflowData.user.full_name || workflowData.user.email}
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-base font-medium text-blue-600">
+                        {(() => {
+                          const fullName = workflowData.user.full_name;
+                          const email = workflowData.user.email;
+                          
+                          if (fullName) {
+                            const words = fullName.trim().split(/\s+/);
+                            if (words.length >= 2) {
+                              return (words[0][0] + words[1][0]).toUpperCase();
+                            } else {
+                              return words[0].slice(0, 2).toUpperCase();
+                            }
+                          } else if (email) {
+                            const emailPrefix = email.split('@')[0];
+                            return emailPrefix.slice(0, 2).toUpperCase();
+                          }
+                          
+                          return 'AU';
+                        })()}
                       </span>
-                    </dd>
+                    </div>
+                  )}
+                  {/* Name and Date */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 truncate">
+                      {workflowData.user.full_name || workflowData.user.email}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {new Date(createdAt).toLocaleDateString()}
+                    </p>
                   </div>
-                )}
-                <div className="flex justify-between">
-                  <dt className="text-neutral-500">Created at</dt>
-                  <dd>{new Date(createdAt).toLocaleDateString()}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-neutral-500">Nodes</dt>
-                  <dd>{nodeCount}</dd>
+              )}
+              
+              {/* Book a Call section - Only for vetted workflows */}
+              {workflowData.isVetted && (
+                <div className="mt-6 pt-6 border-t border-neutral-200">
+                  <h3 className="text-sm font-semibold text-neutral-900 mb-2">
+                    Get help to set this up
+                  </h3>
+                  <button className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium">
+                    Book a call
+                  </button>
                 </div>
-              </dl>
+              )}
             </div>
           </div>
         </div>
