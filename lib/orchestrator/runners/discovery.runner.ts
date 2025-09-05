@@ -365,16 +365,25 @@ export class DiscoveryRunner
       // Generate SEO metadata if discovery is complete (no pending clarifications)
       if (!intentAnalysis.clarification && allDiscoveredNodes.length > 0) {
         try {
-          // Lazy import to avoid circular dependencies
-          const { getSEOGenerator } = await import('@/lib/services/seo-generator.service');
-          const seoGenerator = getSEOGenerator();
+          // Add timeout for SEO generation to prevent hanging
+          const seoTimeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('SEO generation timeout')), 30000); // 30 seconds
+          });
           
-          const seoMetadata = await seoGenerator.generateSEO(
-            allDiscoveredNodes,
-            selectedNodeIds,
-            prompt,
-            sessionId
-          );
+          const seoPromise = (async () => {
+            // Lazy import to avoid circular dependencies
+            const { getSEOGenerator } = await import('@/lib/services/seo-generator.service');
+            const seoGenerator = getSEOGenerator();
+            
+            return await seoGenerator.generateSEO(
+              allDiscoveredNodes,
+              selectedNodeIds,
+              prompt,
+              sessionId
+            );
+          })();
+          
+          const seoMetadata = await Promise.race([seoPromise, seoTimeout]);
           
           // Add SEO operation to persist it
           allOperations.push({

@@ -71,12 +71,26 @@ export async function POST(request: Request) {
           logger.info(
             `Starting configuration phase for ${sessionId} with ${result.selectedNodeIds.length} nodes`
           );
-          // Continue processing phases in background
+          // Continue processing phases in background with timeout protection
           try {
             await orchestrator.runConfigurationPhase(sessionId);
             await orchestrator.runBuildingPhase(sessionId);
-            await orchestrator.runValidationPhase(sessionId);
-            await orchestrator.runDocumentationPhase(sessionId);
+            
+            // Add timeout for validation phase to prevent infinite loops
+            const validationTimeout = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Validation phase timeout')), 120000); // 2 minutes
+            });
+            
+            const validationPromise = orchestrator.runValidationPhase(sessionId);
+            
+            try {
+              await Promise.race([validationPromise, validationTimeout]);
+              await orchestrator.runDocumentationPhase(sessionId);
+            } catch (validationError) {
+              logger.warn(`Validation phase failed/timeout for ${sessionId}, continuing to documentation:`, validationError);
+              // Continue to documentation even if validation fails
+              await orchestrator.runDocumentationPhase(sessionId);
+            }
             
             // Log total workflow completion time
             perfTracker.end('Workflow_Total', { sessionId });

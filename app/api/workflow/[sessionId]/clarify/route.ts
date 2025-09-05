@@ -46,14 +46,28 @@ export async function POST(
     if (!result.pendingClarification && result.selectedNodeIds?.length > 0) {
       logger.info(`Continuing workflow for ${sessionId} after clarification`);
 
-      // Continue processing phases in background
+      // Continue processing phases in background with timeout protection
       orchestrator
         .runConfigurationPhase(sessionId)
         .then(async () => {
           try {
             await orchestrator.runBuildingPhase(sessionId);
-            await orchestrator.runValidationPhase(sessionId);
-            await orchestrator.runDocumentationPhase(sessionId);
+            
+            // Add timeout for validation phase to prevent infinite loops
+            const validationTimeout = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Validation phase timeout')), 120000); // 2 minutes
+            });
+            
+            const validationPromise = orchestrator.runValidationPhase(sessionId);
+            
+            try {
+              await Promise.race([validationPromise, validationTimeout]);
+              await orchestrator.runDocumentationPhase(sessionId);
+            } catch (validationError) {
+              logger.warn(`Validation phase failed/timeout for ${sessionId}, continuing to documentation:`, validationError);
+              // Continue to documentation even if validation fails
+              await orchestrator.runDocumentationPhase(sessionId);
+            }
           } catch (phaseError) {
             logger.error(
               `Phase processing failed for ${sessionId}:`,
