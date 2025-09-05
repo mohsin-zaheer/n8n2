@@ -214,7 +214,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
 
             {/* Enhanced Dropdown menu */}
             <div
-              className="absolute left-0 mt-3 w-80 origin-top-left rounded-2xl border border-neutral-200/60 bg-white/98 backdrop-blur-xl shadow-2xl ring-1 ring-black/5
+              className="absolute left-0 mt-3 w-80 origin-top-left rounded-2xl border border-neutral-200/60 bg-white backdrop-blur-xl shadow-2xl ring-1 ring-black/5
                          opacity-0 invisible translate-y-2 scale-95 transition-all duration-300 ease-out z-50
                          group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100"
               role="menu"

@@ -8,38 +8,30 @@
 export interface Category {
   id: string;
   name: string;
+  parent_id: string | null;
   level: number;
-  subcategories?: Subcategory[];
+  items: string[] | null;
+  display_order: number;
+  created_at: string;
 }
 
-export interface Subcategory {
-  id: string;
-  name: string;
-  parentId: string;
-  items: string[];
-  displayOrder?: number;
+
+export interface CategoryWithSubcategories extends Category {
+  subcategories?: Category[];
 }
 
 export interface WorkflowCategory {
   sessionId: string;
   categoryId: string;
   categoryName: string;
-  subcategoryId: string;
-  subcategoryName: string;
+  subcategoryId?: string;
+  subcategoryName?: string;
   createdAt?: Date;
 }
 
 // Type for the full category hierarchy
 export interface CategoryHierarchy {
-  categories: Array<{
-    id: string;
-    name: string;
-    subcategories: Array<{
-      id: string;
-      name: string;
-      items: string[];
-    }>;
-  }>;
+  categories: CategoryWithSubcategories[];
 }
 
 // Category IDs as constants for type safety
