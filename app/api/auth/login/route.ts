@@ -9,7 +9,18 @@ export async function GET(request: Request) {
   
   try {
     const { searchParams, origin: requestOrigin } = new URL(request.url);
-    origin = requestOrigin;
+    
+    // Check for forwarded host from nginx proxy
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    
+    if (forwardedHost) {
+      origin = `${forwardedProto}://${forwardedHost}`;
+      console.log('Using forwarded host:', origin);
+    } else {
+      origin = requestOrigin;
+      console.log('Using request origin:', origin);
+    }
     const redirectTo = searchParams.get('redirectTo') || '/';
 
     console.log('Login route - redirectTo:', redirectTo);
