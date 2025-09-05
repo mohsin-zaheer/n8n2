@@ -70,7 +70,16 @@ export async function GET(request: Request) {
     const oauthUrl = await Promise.race([authPromise, timeoutPromise]) as string;
     
     console.log('Login route - OAuth URL:', oauthUrl);
-    return NextResponse.redirect(oauthUrl);
+    
+    // Create the redirect response with explicit headers
+    const response = NextResponse.redirect(oauthUrl, { status: 302 });
+    
+    // Ensure proper headers for nginx
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
 
   } catch (err: any) {
     console.error('Login route error:', err);
@@ -87,6 +96,14 @@ export async function GET(request: Request) {
     const errorMessage = err?.message || 'server_error';
     const encodedMessage = encodeURIComponent(errorMessage);
     
-    return NextResponse.redirect(`${origin}/?auth=error&message=${encodedMessage}`);
+    // Create the error redirect response with explicit headers
+    const response = NextResponse.redirect(`${origin}/?auth=error&message=${encodedMessage}`, { status: 302 });
+    
+    // Ensure proper headers for nginx
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
   }
 }

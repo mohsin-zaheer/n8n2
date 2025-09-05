@@ -99,7 +99,15 @@ export async function GET(request: Request) {
     console.log('Redirecting to:', redirectUrl);
     console.log('=== AUTH CALLBACK SUCCESS ===');
     
-    return NextResponse.redirect(redirectUrl);
+    // Create the redirect response with explicit headers
+    const response = NextResponse.redirect(redirectUrl, { status: 302 });
+    
+    // Ensure proper headers for nginx
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
     
   } catch (err: any) {
     console.error('=== AUTH CALLBACK ERROR ===');
@@ -145,6 +153,14 @@ export async function GET(request: Request) {
     console.log('Error redirect URL:', errorRedirectUrl);
     console.log('=== AUTH CALLBACK ERROR END ===');
     
-    return NextResponse.redirect(errorRedirectUrl);
+    // Create the error redirect response with explicit headers
+    const response = NextResponse.redirect(errorRedirectUrl, { status: 302 });
+    
+    // Ensure proper headers for nginx
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
   }
 }
