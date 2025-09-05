@@ -80,7 +80,14 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
             items: [],
             display_order: 0,
             created_at: new Date().toISOString(),
-            subcategories: cat.subcategories || []
+            subcategories: (cat.subcategories || []).map((sub: any) => ({
+              ...sub,
+              parent_id: cat.id,
+              level: 1,
+              items: [],
+              display_order: 0,
+              created_at: new Date().toISOString()
+            }))
           }));
           setCategories(transformedCategories);
         }
