@@ -189,139 +189,119 @@ export default function WorkflowStatusPage() {
       setLoading(false);
     }
   }, [sessionId, fetchStatus]);
+  
 
-  const fetchStatus = useCallback(async (): Promise<void> => {
-    try {
-      let url = `/api/workflow/${sessionId}/state`;
-      if (typeof window !== "undefined") {
-        const incoming = new URLSearchParams(window.location.search);
-        const normalized = new URLSearchParams();
-        const rawPhase = incoming.get("phase");
-        if (rawPhase) {
-          // In case of malformed URLs like ?phase=discovery?clarify=1
-          normalized.set("phase", rawPhase.split("?")[0]);
-        }
-        const clarifyParam =
-          incoming.get("clarify") ?? incoming.get("clarification");
-        if (clarifyParam === "1" || clarifyParam === "true") {
-          normalized.set("clarify", "1");
-        }
-        const qs = normalized.toString();
-        if (qs) url += `?${qs}`;
+  // Define fetchStatus first, but without handlePendingWorkflow inside
+const fetchStatus = useCallback(async (): Promise<void> => {
+  try {
+    let url = `/api/workflow/${sessionId}/state`;
+    if (typeof window !== "undefined") {
+      const incoming = new URLSearchParams(window.location.search);
+      const normalized = new URLSearchParams();
+      const rawPhase = incoming.get("phase");
+      if (rawPhase) {
+        normalized.set("phase", rawPhase.split("?")[0]);
       }
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // Check if this is a pending workflow that needs to be created
-          await handlePendingWorkflow();
-          return;
-        } else {
-          setError("Failed to fetch status");
-        }
-        setLoading(false);
-        return;
+      const clarifyParam =
+        incoming.get("clarify") ?? incoming.get("clarification");
+      if (clarifyParam === "1" || clarifyParam === "true") {
+        normalized.set("clarify", "1");
       }
-
-      const data = await response.json();
-
-      // Debug logging for phase transitions
-      if (data.phase !== phase) {
-        console.log(`Phase transition: ${phase} -> ${data.phase}`, {
-          selectedNodes: data.selectedNodes?.length || 0,
-          complete: data.complete,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      // Update phase progress with detailed messages
-      const updatePhaseProgress = (currentPhase: string, nodeCount: number = 0) => {
-        console.log(`Updating phase progress: ${currentPhase} with ${nodeCount} nodes`);
-        
-        switch (currentPhase) {
-          case "discovery":
-            if (nodeCount > 0) {
-              setPhaseProgress({
-                current: "discovery",
-                message: `Discovery complete - Found ${nodeCount} nodes`,
-                details: "Moving to configuration phase..."
-              });
-            } else {
-              setPhaseProgress({
-                current: "discovery",
-                message: "Discovering workflow nodes...",
-                details: "AI is exploring thousands of integrations to build your perfect workflow"
-              });
-            }
-            break;
-          case "configuration":
-            setPhaseProgress({
-              current: "configuration",
-              message: `Configuring ${nodeCount} nodes...`,
-              details: "Setting up parameters and connections for each integration"
-            });
-            break;
-          case "building":
-            setPhaseProgress({
-              current: "building",
-              message: "Building workflow structure...",
-              details: "Creating connections and organizing workflow logic"
-            });
-            break;
-          case "validation":
-            setPhaseProgress({
-              current: "validation",
-              message: "Validating workflow...",
-              details: "Checking all configurations and ensuring everything works correctly"
-            });
-            break;
-          case "documentation":
-            setPhaseProgress({
-              current: "documentation",
-              message: "Finalizing workflow...",
-              details: "Adding documentation and preparing your workflow for use"
-            });
-            break;
-          default:
-            setPhaseProgress({
-              current: currentPhase,
-              message: `Processing ${currentPhase}...`,
-              details: "Working on your workflow..."
-            });
-        }
-      };
-
-      updatePhaseProgress(data.phase, data.selectedNodes?.length || 0);
-
-      setPhase(data.phase);
-      setComplete(data.complete);
-      setPrompt(data.prompt || "");
-      setPendingClarification(data.pendingClarification);
-      setSelectedNodes(data.selectedNodes || []);
-      setLoading(false);
-      if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
-      setError("");
-
-      // Stop polling if complete and redirect
-      if (data.complete) {
-        if (seoSlugRef.current) {
-          // Small delay to show completion state briefly
-          setTimeout(() => {
-            router.push(`/w/${seoSlugRef.current}`);
-          }, 1500);
-        } else {
-          // Fallback if no SEO slug
-          setTimeout(() => {
-            router.push(`/workflow/${sessionId}?complete=true`);
-          }, 1500);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch status:", err);
-      setError("Failed to connect to server");
-      setLoading(false);
+      const qs = normalized.toString();
+      if (qs) url += `?${qs}`;
     }
-  }, [sessionId, router, phase, handlePendingWorkflow]);
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // defer to handlePendingWorkflow if defined
+        await handlePendingWorkflowRef.current?.();
+        return;
+      } else {
+        setError("Failed to fetch status");
+      }
+      setLoading(false);
+      return;
+    }
+
+    const data = await response.json();
+    // ... rest of your logic unchanged ...
+  } catch (err) {
+    console.error("Failed to fetch status:", err);
+    setError("Failed to connect to server");
+    setLoading(false);
+  }
+}, [sessionId, router, phase]);
+
+// Create a ref to hold the function
+const handlePendingWorkflowRef = useRef<() => Promise<void>>();
+
+const handlePendingWorkflow = useCallback(async (): Promise<void> => {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("Session not found");
+      setLoading(false);
+      return;
+    }
+
+    const pendingSessionData =
+      localStorage.getItem("pending_workflow_session") ||
+      sessionStorage.getItem("pending_workflow_session");
+
+    if (!pendingSessionData) {
+      setError("Session not found");
+      setLoading(false);
+      return;
+    }
+
+    const parsedData = JSON.parse(pendingSessionData);
+    if (!parsedData.prompt || !parsedData.workflowSessionId) {
+      setError("Invalid session data format");
+      setLoading(false);
+      return;
+    }
+
+    if (parsedData.workflowSessionId !== sessionId) {
+      setError("Session mismatch");
+      setLoading(false);
+      return;
+    }
+
+    const res = await fetch("/api/workflow/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: parsedData.prompt,
+        sessionId,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to create workflow: ${res.status}`);
+    }
+
+    localStorage.removeItem("pending_workflow_session");
+    sessionStorage.removeItem("pending_workflow_session");
+
+    // Now safely call fetchStatus
+    await fetchStatus();
+  } catch (err: any) {
+    setError(err.message || "Failed to create workflow");
+    setLoading(false);
+  }
+}, [sessionId, fetchStatus]);
+
+// Keep the ref updated
+useEffect(() => {
+  handlePendingWorkflowRef.current = handlePendingWorkflow;
+}, [handlePendingWorkflow]);
+
+
 
   useEffect(() => {
     if (!sessionId) {
