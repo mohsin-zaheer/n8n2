@@ -488,87 +488,59 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
       <div className="p-4 sm:p-5">
         {/* Top Pills - Vetted first, then Category hierarchy */}
         <div className="flex flex-wrap gap-2 mb-3">
-          
           {/* Vetted badge - first position with green gradient */}
           {workflow.is_vetted && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-white" style={{
               background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)'
             }}>
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
+              <Image src="/assets/check.svg" alt='checkmark' width={20} height={20} style={{marginRight: '-5px', marginTop: '-3px'}}/>
               Vetted workflow
             </span>
           )}
           
-          
-          {/* Category hierarchy pills - only show if new data exists */}
+          {/* Category hierarchy pills - only show if new data exists and has valid names */}
           {workflow.seoMetadata?.category_id && (() => {
+            const categoryName = getCategoryName(workflow.seoMetadata.category_id);
             const categoryId = workflow.seoMetadata.category_id;
-            const categoryName = getCategoryName(categoryId);
             const Icon = categoryIcons[categoryId];
             
-            // Create fallback category names if getCategoryName returns empty
-            const fallbackCategoryNames: { [key: string]: string } = {
-              'cat_1': 'Marketing',
-              'cat_2': 'Content',
-              'cat_3': 'Lead Generation',
-              'cat_4': 'Sales',
-              'cat_5': 'SEO',
-              'cat_6': 'Customer Success'
-            };
-            
-            const displayCategoryName = categoryName || fallbackCategoryNames[categoryId] || categoryId;
-            
-            return (
+            return categoryName ? (
               <>
                 {/* Main category in black pill with white text and icon */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
                   {Icon && <Icon className="h-3 w-3" />}
-                  {displayCategoryName}
+                  {/* {categoryName} */}
+                  {console.log("subcaegory", workflow.seoMetadata?.subcategory_id )}
                 </span>
                 
-                {/* Subcategory pill */}
+                {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  
-                  // Create better fallback names based on known subcategory IDs
-                  let displayName = subcategoryName;
-                  if (!displayName) {
-                    const subcategoryMap: { [key: string]: string } = {
-                      'cat_1_sub_1': 'Paid Search',
-                      'cat_1_sub_2': 'Social Media Ads',
-                      'cat_2_sub_1': 'Blog Content',
-                      'cat_2_sub_2': 'Video Content',
-                      'cat_2_sub_3': 'SEO Content',
-                      'cat_3_sub_1': 'Lead Magnets',
-                      'cat_3_sub_2': 'Landing Pages',
-                      'cat_4_sub_1': 'Lead Scoring',
-                      'cat_4_sub_2': 'Sales Outreach',
-                      'cat_5_sub_1': 'SEO Optimization',
-                      'cat_5_sub_2': 'Content Marketing',
-                      'cat_6_sub_1': 'Customer Support',
-                      'cat_6_sub_2': 'Retention Campaigns'
-                    };
-                    displayName = subcategoryMap[workflow.seoMetadata.subcategory_id] || workflow.seoMetadata.subcategory_id;
-                  }
-                  
-                  return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  console.log('Subcategory debug:', {
+                    subcategoryId: workflow.seoMetadata.subcategory_id,
+                    subcategoryName,
+                    categoryId: workflow.seoMetadata.category_id
+                  });
+                  return subcategoryName ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
                       <ChevronRight className="h-3 w-3" />
-                      {displayName}
+                      {subcategoryName}
+                      
                     </span>
-                  );
+                  ) : null;
                 })()}
               </>
-            );
+            ) : null;
           })()}
           
-          {/* Fallback to old category field if no new data */}
-          {!workflow.seoMetadata?.category_id && workflow.seoMetadata?.category && (
+          
+          {/* Fallback to old category field if no new data or invalid category_id */}
+          {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
               <Zap className="h-3 w-3" />
               {workflow.seoMetadata.category}
+
+              
             </span>
           )}
           
