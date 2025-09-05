@@ -191,6 +191,12 @@ export default function WorkflowStatusPage() {
   }, [sessionId, router]);
 
   const fetchStatus = useCallback(async () => {
+    // Don't fetch if we're already complete and have redirected
+    if (complete && seoSlugRef.current) {
+      console.log('Skipping fetch - already complete and have SEO slug');
+      return;
+    }
+
     try {
       let url = `/api/workflow/${sessionId}/state`;
       if (typeof window !== "undefined") {
@@ -209,6 +215,8 @@ export default function WorkflowStatusPage() {
         const qs = normalized.toString();
         if (qs) url += `?${qs}`;
       }
+      
+      console.log('Fetching status from:', url);
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -224,6 +232,12 @@ export default function WorkflowStatusPage() {
       }
 
       const data = await response.json();
+      console.log('Received status data:', {
+        phase: data.phase,
+        complete: data.complete,
+        selectedNodes: data.selectedNodes?.length || 0,
+        seoSlug: data.seoSlug
+      });
 
       // Debug logging for phase transitions
       if (data.phase !== phase || data.complete !== complete) {
@@ -341,7 +355,7 @@ export default function WorkflowStatusPage() {
       setError("Failed to connect to server");
       setLoading(false);
     }
-  }, [sessionId, router, phase, handlePendingWorkflow]);
+  }, [sessionId, router, phase, complete, handlePendingWorkflow]);
 
   useEffect(() => {
     if (!sessionId) {
