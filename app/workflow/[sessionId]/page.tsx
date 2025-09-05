@@ -292,14 +292,14 @@ export default function WorkflowStatusPage() {
       // Update state first, then update progress messages
       const newPhase = data.phase || 'discovery';
       const isComplete = Boolean(data.complete);
-      const nodeCount = Array.isArray(data.selectedNodes) 
+      const processedNodeCount = Array.isArray(data.selectedNodes) 
         ? data.selectedNodes.length 
         : (typeof data.selectedNodes === 'number' ? data.selectedNodes : 0);
 
       console.log('Setting state:', { 
         newPhase, 
         isComplete, 
-        nodeCount,
+        nodeCount: processedNodeCount,
         previousPhase: phase,
         previousComplete: complete 
       });
@@ -390,7 +390,7 @@ export default function WorkflowStatusPage() {
         }
       };
 
-      updatePhaseProgress(newPhase, isComplete, nodeCount, data);
+      updatePhaseProgress(newPhase, isComplete, processedNodeCount, data);
       setPrompt(data.prompt || "");
       setPendingClarification(data.pendingClarification);
       
