@@ -190,7 +190,7 @@ export default function WorkflowStatusPage() {
     }
   }, [sessionId, fetchStatus]);
 
-  const fetchStatus = useCallback(async () => {
+  const fetchStatus = useCallback(async (): Promise<void> => {
     try {
       let url = `/api/workflow/${sessionId}/state`;
       if (typeof window !== "undefined") {
