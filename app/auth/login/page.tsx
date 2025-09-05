@@ -15,6 +15,17 @@ function LoginContent() {
   const supabase = createClient();
 
   useEffect(() => {
+    // Check for auth errors in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const authError = urlParams.get('auth');
+    const errorMessage = urlParams.get('message');
+    
+    if (authError === 'error') {
+      setError(errorMessage ? decodeURIComponent(errorMessage) : 'Authentication failed. Please try again.');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Listen for auth state changes (including OAuth callbacks)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.id);
@@ -55,12 +66,24 @@ function LoginContent() {
       if (event === 'SIGNED_OUT') {
         setCheckingSession(false);
       }
+      
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      }
     });
 
     // Also check current auth state on mount
     const checkCurrentAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error) {
+          console.error("Error getting user:", error);
+          // Clear potentially corrupted session
+          await supabase.auth.signOut();
+          setCheckingSession(false);
+          return;
+        }
 
         if (user) {
           // Check for pending workflow session
@@ -132,19 +155,9 @@ function LoginContent() {
         }
       }
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          // Supabase will handle /auth/v1/callback automatically
-          redirectTo: `${window.location.origin}${redirectUrl}`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
-
-      if (error) throw error;
+      // Use the API route instead of direct OAuth to ensure proper error handling
+      window.location.href = `/api/auth/login?redirectTo=${encodeURIComponent(redirectUrl)}`;
+      
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "Failed to sign in. Please try again.");
