@@ -292,65 +292,76 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
             <div
               id="mobile-directory"
               className={cn(
-                "grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out mt-2",
+                "grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out mt-3",
                "grid-rows-[1fr] opacity-100"
               )}
             >
-              <ul className="min-h-0 overflow-hidden rounded-lg border bg-white/95">
-                <li>
-                  <Link
-                    href="/directory?search=lead"
-                    onClick={closeMobile}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem"
-                  >
-                    <Icon icon="mdi:account-multiple-plus" className="text-lg shrink-0 navIco" />
-                    Leadgen
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/directory?search=linkedin"
-                    onClick={closeMobile}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem1"
-                  >
-                    <Icon icon="mdi:linkedin" className="text-lg shrink-0 navIco" />
-                    Linkedin voice
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/directory?search=seo"
-                    onClick={closeMobile}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem2"
-                  >
-                    <Icon icon="mdi:google-analytics" className="text-lg shrink-0  navIco" />
-                    SEO and AEO
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/directory"
-                    onClick={closeMobile}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg navItem3"
-                  >
-                    <Icon icon="mdi:dots-horizontal-circle" className="text-lg shrink-0 navIco" />
-                    More
-                  </Link>
-                </li>
-                <li className="mt-3">
-                  <Link
-                    href="/directory"
-                    onClick={closeMobile}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg transition-colors text-white"
-                    style={{ 
-                      background: 'rgb(27, 200, 140)'
-                    }}
-                  >
-                    <Icon icon="mdi:shield-check" className="text-lg shrink-0" />
-                    Vetted workflows
-                  </Link>
-                </li>
-              </ul>
+              <div className="min-h-0 overflow-hidden rounded-xl border border-neutral-200/60 bg-white/95 backdrop-blur-sm">
+                {/* Mobile Categories */}
+                <div className="p-3">
+                  <div className="mb-3">
+                    <h3 className="text-sm font-semibold text-neutral-900 mb-1">Categories</h3>
+                    <p className="text-xs text-neutral-500">Browse workflows by category</p>
+                  </div>
+                  
+                  <div className="space-y-1 mb-4">
+                    {categories.map((category, index) => {
+                      const IconComponent = categoryIcons[category.id];
+                      return (
+                        <Link
+                          key={category.id}
+                          href={`/directory?category=${category.id}`}
+                          onClick={closeMobile}
+                          className="flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg 
+                                   transition-all duration-200 hover:bg-gradient-to-r hover:from-neutral-50 hover:to-neutral-100/50 
+                                   text-neutral-700 hover:text-neutral-900 border border-transparent hover:border-neutral-200/50"
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-neutral-100 to-neutral-200/50">
+                            {IconComponent && <IconComponent className="h-4 w-4 text-neutral-600" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{category.name}</div>
+                            {category.subcategories && category.subcategories.length > 0 && (
+                              <div className="text-xs text-neutral-500 mt-0.5">
+                                {category.subcategories.length} subcategories
+                              </div>
+                            )}
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-neutral-400" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+
+                  {/* Mobile Special Actions */}
+                  <div className="border-t border-neutral-200/60 pt-3 space-y-2">
+                    <Link
+                      href="/directory"
+                      onClick={closeMobile}
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg 
+                               transition-all duration-200 hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900"
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-neutral-100">
+                        <Search className="h-4 w-4 text-neutral-600" />
+                      </div>
+                      <span>Browse All Workflows</span>
+                    </Link>
+                    
+                    <Link
+                      href="/directory?vetted=true"
+                      onClick={closeMobile}
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold rounded-lg 
+                               transition-all duration-200 text-white bg-gradient-to-r from-emerald-500 to-teal-600 
+                               hover:from-emerald-600 hover:to-teal-700 hover:shadow-lg"
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20">
+                        <Icon icon="mdi:shield-check" className="h-4 w-4" />
+                      </div>
+                      <span>Vetted Workflows Only</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
