@@ -156,7 +156,9 @@ function LoginContent() {
       }
 
       // Use the API route instead of direct OAuth to ensure proper error handling
-      window.location.href = `/api/auth/login?redirectTo=${encodeURIComponent(redirectUrl)}`;
+      const loginUrl = `/api/auth/login?redirectTo=${encodeURIComponent(redirectUrl)}`;
+      console.log('Redirecting to login URL:', loginUrl);
+      window.location.href = loginUrl;
       
     } catch (err: any) {
       console.error("Login error:", err);
