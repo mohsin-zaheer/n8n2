@@ -9,6 +9,7 @@ export interface NodeMetadata {
   requires_auth: boolean;
   configuration_doc_url?: string;
   official_doc_url?: string;
+  configuration_guide?: string;
   icon_name?: string;
   created_at: string;
   updated_at: string;

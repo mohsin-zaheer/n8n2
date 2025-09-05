@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { NodeIcon } from "@/components/ui/node-icon";
 import { resolveIconName } from "@/lib/icon-aliases";
 import { VettedBadge } from "@/components/ui/vetted-badge";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download, ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { loadCategories, getCategoryName, getSubcategoryName, categoryIcons } from "@/lib/services/category-helper.service";
+import { getNodeMetadata, NodeMetadata } from "@/lib/actions/node-metadata.actions";
+import { NodeConfigurationAccordion } from "@/components/workflow/node-configuration-accordion";
 
 // Generate metadata for SEO
 export async function generateMetadata({
@@ -123,6 +125,7 @@ export default async function WorkflowPublicPage({
   // Extract unique node types and fetch metadata from database
   const nodeTypes = orderedNodes.map((node: any) => node.type);
   const uniqueNodeTypes = [...new Set(nodeTypes)] as string[];
+  const nodeMetadata = await getNodeMetadata(uniqueNodeTypes);
   
   const getIconName = (nodeType: string) => {
     const base = nodeType
@@ -216,77 +219,31 @@ export default async function WorkflowPublicPage({
                 </div>
               )}
             </div>
-            {/* Comprehensive Setup Guide - Will be created as separate component */}
+            {/* Comprehensive Setup Guide */}
             <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
               <h2 className="text-lg font-semibold text-neutral-900 mb-3">
                 Comprehensive Setup Guide
               </h2>
               <p className="text-sm text-neutral-600 mb-4">
-                Step-by-step configuration guide with documentation links
+                Step-by-step configuration guide for each node
               </p>
               {orderedNodes.length > 0 ? (
                 <div className="space-y-4">
                   {orderedNodes.map((node: any, idx: number) => {
                     const nodeType = node.type;
-                    const requiresAuth = nodeType.includes('Gmail') || nodeType.includes('Slack') || nodeType.includes('Google') || nodeType.includes('Twitter') || nodeType.includes('LinkedIn');
+                    const metadata = nodeMetadata[nodeType];
+                    const requiresAuth = metadata?.requires_auth || nodeType.includes('Gmail') || nodeType.includes('Slack') || nodeType.includes('Google') || nodeType.includes('Twitter') || nodeType.includes('LinkedIn');
                     const status = requiresAuth ? 'Configuration Required' : 'Configured';
                     
                     return (
-                      <div key={node.id ?? idx} className="border border-neutral-200 rounded-lg p-4">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="mt-0.5">
-                            <NodeIcon
-                              name={getIconName(node.type)}
-                              size={24}
-                              className="h-6 w-6"
-                              forceBackground
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="text-sm font-medium text-neutral-900 truncate">
-                                {node.name || node.type.replace("n8n-nodes-base.", "")}
-                              </h3>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                status === 'Configured' 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : 'bg-orange-100 text-orange-700'
-                              }`}>
-                                {status}
-                              </span>
-                            </div>
-                            <div className="text-xs text-neutral-500 mb-2">
-                              {node.type.replace("n8n-nodes-base.", "")}
-                            </div>
-                            {requiresAuth && (
-                              <div className="text-xs text-orange-600 mb-2">
-                                Authentication required for this service
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Documentation Links */}
-                        <div className="flex gap-2 text-xs">
-                          <a 
-                            href={`https://docs.n8n.io/integrations/builtin/app-nodes/${getIconName(node.type).toLowerCase()}/`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline"
-                          >
-                            Official Documentation
-                          </a>
-                          <span className="text-neutral-300">•</span>
-                          <a 
-                            href={`https://docs.n8n.io/integrations/builtin/app-nodes/${getIconName(node.type).toLowerCase()}/#configuration`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline"
-                          >
-                            Configuration Guide
-                          </a>
-                        </div>
-                      </div>
+                      <NodeConfigurationAccordion
+                        key={node.id ?? idx}
+                        node={node}
+                        metadata={metadata}
+                        status={status}
+                        requiresAuth={requiresAuth}
+                        getIconName={getIconName}
+                      />
                     );
                   })}
                 </div>
