@@ -376,9 +376,12 @@ const WorkflowDirectoryContent = () => {
                           onClick={() => setCurrentPage(page)}
                           className={`px-3 py-2 text-sm border rounded-md transition-colors ${
                             currentPage === page
-                              ? 'bg-blue-600 text-white border-blue-600'
+                              ? 'text-white'
                               : 'border-gray-300 hover:bg-gray-50'
                           }`}
+                          style={{ 
+        background: 'linear-gradient(122deg, rgba(1, 152, 115, 1) 0%, rgba(27, 200, 140, 1) 50%, rgba(1, 147, 147, 1) 100%)' 
+      }}
                         >
                           {page}
                         </button>
