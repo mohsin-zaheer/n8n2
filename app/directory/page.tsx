@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, Suspense, useCallback, memo } from 'react'
+import React, { useState, useEffect, useMemo, Suspense, useCallback, memo, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { Search, Filter, X, Clock, Users, Zap, User, ChevronRight } from 'lucide-react'
+import { Search, Filter, X, Clock, Users, Zap, User, ChevronRight, ChevronDown, Check } from 'lucide-react'
 import { WorkflowQueries } from '@/lib/db/workflow-queries'
 import { WorkflowState } from '@/lib/db/types'
 import { WorkflowSEOMetadata } from '@/types/seo'
@@ -58,6 +58,9 @@ const WorkflowDirectoryContent = () => {
   })
   const [currentPage, setCurrentPage] = useState(1)
   const [dynamicCategories, setDynamicCategories] = useState<CategoryWithSubcategories[]>([])
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
+  const [categorySearchQuery, setCategorySearchQuery] = useState('')
+  const categoryDropdownRef = useRef<HTMLDivElement>(null)
   const itemsPerPage = 12
 
   // Initialize filters from URL parameters - run immediately on mount
@@ -172,39 +175,74 @@ const WorkflowDirectoryContent = () => {
     setCurrentPage(1)
   }, [searchQuery, selectedCategory, onlyVetted])
 
-  // Build categories list for dropdown - now with hierarchy
-  const renderCategoryOptions = () => {
-    const options: JSX.Element[] = [];
-    
-    // Add "All Categories" option
-    options.push(
-      <option key="all" value="all" className="font-medium">
-        All Categories
-      </option>
-    );
-    
-    // Add main categories and their subcategories
-    dynamicCategories.forEach(mainCategory => {
-      // Add main category
-      options.push(
-        <option key={mainCategory.id} value={mainCategory.id} className="font-semibold">
-          {mainCategory.name}
-        </option>
-      );
-      
-      // Add subcategories (indented)
-      if (mainCategory.subcategories && mainCategory.subcategories.length > 0) {
-        mainCategory.subcategories.forEach(subCategory => {
-          options.push(
-            <option key={subCategory.id} value={subCategory.id} className="pl-4">
-               {subCategory.name}
-            </option>
-          );
-        });
+  // Close category dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setCategoryDropdownOpen(false)
+        setCategorySearchQuery('')
       }
-    });
-    
-    return options;
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Get selected category display info
+  const getSelectedCategoryInfo = () => {
+    if (selectedCategory === 'all') {
+      return { name: 'All Categories', icon: null, isSubcategory: false }
+    }
+
+    // Check if it's a main category
+    const mainCat = dynamicCategories.find(cat => cat.id === selectedCategory)
+    if (mainCat) {
+      const Icon = categoryIcons[mainCat.id]
+      return { name: mainCat.name, icon: Icon, isSubcategory: false }
+    }
+
+    // Check if it's a subcategory
+    for (const category of dynamicCategories) {
+      const subcat = category.subcategories?.find(sub => sub.id === selectedCategory)
+      if (subcat) {
+        const Icon = categoryIcons[category.id]
+        return { 
+          name: subcat.name, 
+          icon: Icon, 
+          isSubcategory: true,
+          parentName: category.name 
+        }
+      }
+    }
+
+    return { name: selectedCategory, icon: null, isSubcategory: false }
+  }
+
+  // Filter categories based on search
+  const filteredCategories = useMemo(() => {
+    if (!categorySearchQuery.trim()) return dynamicCategories
+
+    const query = categorySearchQuery.toLowerCase()
+    return dynamicCategories.map(category => {
+      const categoryMatches = category.name.toLowerCase().includes(query)
+      const matchingSubcategories = category.subcategories?.filter(sub => 
+        sub.name.toLowerCase().includes(query)
+      ) || []
+
+      if (categoryMatches || matchingSubcategories.length > 0) {
+        return {
+          ...category,
+          subcategories: categoryMatches ? category.subcategories : matchingSubcategories
+        }
+      }
+      return null
+    }).filter(Boolean) as CategoryWithSubcategories[]
+  }, [dynamicCategories, categorySearchQuery])
+
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId)
+    setCategoryDropdownOpen(false)
+    setCategorySearchQuery('')
   }
 
   return (
@@ -244,49 +282,126 @@ const WorkflowDirectoryContent = () => {
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
-            {/* Category Filter with Icons */}
+            {/* Modern Category Filter Dropdown */}
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
-              <div className="relative">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+              <div className="relative" ref={categoryDropdownRef}>
+                {/* Dropdown Trigger */}
+                <button
+                  onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-colors"
                   style={{ minWidth: '200px' }}
                 >
-                  {renderCategoryOptions()}
-                </select>
-                <ChevronRight className="absolute right-2 top-1/2 transform -translate-y-1/2 rotate-90 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
-              {/* Show selected category icon if it's a main category or subcategory */}
-              {selectedCategory !== 'all' && (() => {
-                // First check if it's a main category
-                const mainCat = dynamicCategories.find(cat => cat.id === selectedCategory);
-                if (mainCat && categoryIcons[mainCat.id]) {
-                  const Icon = categoryIcons[mainCat.id];
-                  
-                  return (
-                    <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                  );
-                }
-            
-                // Check if it's a subcategory and show parent category icon
-                for (const category of dynamicCategories) {
-                  const subcat = category.subcategories?.find(sub => sub.id === selectedCategory);
-                  if (subcat && categoryIcons[category.id]) {
-                    const Icon = categoryIcons[category.id];
+                  {(() => {
+                    const categoryInfo = getSelectedCategoryInfo()
                     return (
-                      <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
-                        <Icon className="h-4 w-4" />
+                      <>
+                        {categoryInfo.icon && (
+                          <div className="flex items-center justify-center w-5 h-5 rounded bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
+                            <categoryInfo.icon className="h-3 w-3" />
+                          </div>
+                        )}
+                        <span className="flex-1 text-left truncate">
+                          {categoryInfo.isSubcategory ? (
+                            <span>
+                              <span className="text-gray-500">{categoryInfo.parentName}</span>
+                              <ChevronRight className="inline h-3 w-3 mx-1" />
+                              <span>{categoryInfo.name}</span>
+                            </span>
+                          ) : (
+                            categoryInfo.name
+                          )}
+                        </span>
+                        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+                      </>
+                    )
+                  })()}
+                </button>
+
+                {/* Dropdown Menu */}
+                {categoryDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-80 overflow-hidden">
+                    {/* Search Input */}
+                    <div className="p-2 border-b border-gray-100">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-3 w-3" />
+                        <input
+                          type="text"
+                          placeholder="Search categories..."
+                          value={categorySearchQuery}
+                          onChange={(e) => setCategorySearchQuery(e.target.value)}
+                          className="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                        />
                       </div>
-                    );
-                  }
-                }
-            
-                return null;
-              })()}
+                    </div>
+
+                    {/* Categories List */}
+                    <div className="max-h-64 overflow-y-auto">
+                      {/* All Categories Option */}
+                      <button
+                        onClick={() => handleCategorySelect('all')}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 text-sm ${
+                          selectedCategory === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                      >
+                        {selectedCategory === 'all' && <Check className="h-3 w-3 text-blue-600" />}
+                        <span className={selectedCategory === 'all' ? 'font-medium' : ''}>All Categories</span>
+                      </button>
+
+                      {/* Dynamic Categories */}
+                      {filteredCategories.map((category) => (
+                        <div key={category.id}>
+                          {/* Main Category */}
+                          <button
+                            onClick={() => handleCategorySelect(category.id)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 text-sm ${
+                              selectedCategory === category.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                            }`}
+                          >
+                            {selectedCategory === category.id && <Check className="h-3 w-3 text-blue-600" />}
+                            {categoryIcons[category.id] && (
+                              <div className="flex items-center justify-center w-4 h-4 rounded bg-gradient-to-r from-[rgb(1,152,115)] to-[rgb(27,200,140)] text-white">
+                                {React.createElement(categoryIcons[category.id], { className: "h-2.5 w-2.5" })}
+                              </div>
+                            )}
+                            <span className={`font-medium ${selectedCategory === category.id ? 'text-blue-700' : 'text-gray-900'}`}>
+                              {category.name}
+                            </span>
+                          </button>
+
+                          {/* Subcategories */}
+                          {category.subcategories && category.subcategories.length > 0 && (
+                            <div className="bg-gray-25">
+                              {category.subcategories.map((subcategory) => (
+                                <button
+                                  key={subcategory.id}
+                                  onClick={() => handleCategorySelect(subcategory.id)}
+                                  className={`w-full flex items-center gap-2 pl-8 pr-3 py-1.5 text-left hover:bg-gray-50 text-xs ${
+                                    selectedCategory === subcategory.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600'
+                                  }`}
+                                >
+                                  {selectedCategory === subcategory.id && <Check className="h-3 w-3 text-blue-600" />}
+                                  <ChevronRight className="h-3 w-3 text-gray-400" />
+                                  <span className={selectedCategory === subcategory.id ? 'font-medium text-blue-700' : ''}>
+                                    {subcategory.name}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* No Results */}
+                      {categorySearchQuery && filteredCategories.length === 0 && (
+                        <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                          No categories found for "{categorySearchQuery}"
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Vetted Filter Checkbox */}
