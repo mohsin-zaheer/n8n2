@@ -236,8 +236,13 @@ export default function WorkflowStatusPage() {
         phase: data.phase,
         complete: data.complete,
         selectedNodes: data.selectedNodes?.length || 0,
-        seoSlug: data.seoSlug
+        seoSlug: data.seoSlug,
+        progress: data.progress,
+        progressMessage: data.progressMessage
       });
+
+      // Store latest status for progress bar calculation
+      sessionStorage.setItem(`workflow_status_${sessionId}`, JSON.stringify(data));
 
       // Debug logging for phase transitions
       if (data.phase !== phase || data.complete !== complete) {
@@ -274,73 +279,90 @@ export default function WorkflowStatusPage() {
       setPhase(data.phase);
       setComplete(data.complete);
 
-      // Update phase progress with detailed messages
-      const updatePhaseProgress = (currentPhase: string, isComplete: boolean, nodeCount: number = 0) => {
+      // Update phase progress with real-time backend data
+      const updatePhaseProgress = (currentPhase: string, isComplete: boolean, nodeCount: number = 0, backendData: any = {}) => {
         console.log(`Updating phase progress: ${currentPhase} with ${nodeCount} nodes, complete: ${isComplete}`);
         
         if (isComplete) {
           setPhaseProgress({
             current: "complete",
-            message: "Workflow generation complete!",
-            details: "Your workflow has been successfully created and is ready to use"
+            message: backendData.completionMessage || "Workflow generation complete!",
+            details: backendData.completionDetails || "Your workflow has been successfully created and is ready to use"
           });
           return;
         }
         
+        // Use backend-provided progress messages if available
+        if (backendData.progressMessage) {
+          setPhaseProgress({
+            current: currentPhase,
+            message: backendData.progressMessage,
+            details: backendData.progressDetails || ""
+          });
+          return;
+        }
+        
+        // Fallback to phase-based messages with real data
         switch (currentPhase) {
           case "discovery":
             if (nodeCount > 0) {
               setPhaseProgress({
                 current: "discovery",
                 message: `Discovery complete - Found ${nodeCount} nodes`,
-                details: "Moving to configuration phase..."
+                details: backendData.discoveryDetails || "Moving to configuration phase..."
               });
             } else {
               setPhaseProgress({
                 current: "discovery",
-                message: "Discovering workflow nodes...",
-                details: "AI is exploring thousands of integrations to build your perfect workflow"
+                message: backendData.discoveryMessage || "Discovering workflow nodes...",
+                details: backendData.discoveryDetails || "AI is exploring integrations to build your workflow"
               });
             }
             break;
           case "configuration":
+            const configuredCount = backendData.configuredNodes || 0;
+            const totalCount = nodeCount;
             setPhaseProgress({
               current: "configuration",
-              message: `Configuring ${nodeCount} nodes...`,
-              details: "Setting up parameters and connections for each integration"
+              message: `Configuring nodes... (${configuredCount}/${totalCount})`,
+              details: backendData.configurationDetails || "Setting up parameters and connections for each integration"
             });
             break;
           case "building":
             setPhaseProgress({
               current: "building",
-              message: "Building workflow structure...",
-              details: "Creating connections and organizing workflow logic"
+              message: backendData.buildingMessage || "Building workflow structure...",
+              details: backendData.buildingDetails || "Creating connections and organizing workflow logic"
             });
             break;
           case "validation":
+            const validationErrors = backendData.validationErrors || 0;
+            const validationMessage = validationErrors > 0 
+              ? `Fixing ${validationErrors} validation issues...`
+              : "Validating workflow...";
             setPhaseProgress({
               current: "validation",
-              message: "Validating workflow...",
-              details: "Checking all configurations and ensuring everything works correctly"
+              message: backendData.validationMessage || validationMessage,
+              details: backendData.validationDetails || "Checking all configurations and ensuring everything works correctly"
             });
             break;
           case "documentation":
             setPhaseProgress({
               current: "documentation",
-              message: "Finalizing workflow...",
-              details: "Adding documentation and preparing your workflow for use"
+              message: backendData.documentationMessage || "Finalizing workflow...",
+              details: backendData.documentationDetails || "Adding documentation and preparing your workflow for use"
             });
             break;
           default:
             setPhaseProgress({
               current: currentPhase,
-              message: `Processing ${currentPhase}...`,
-              details: "Working on your workflow..."
+              message: backendData.message || `Processing ${currentPhase}...`,
+              details: backendData.details || "Working on your workflow..."
             });
         }
       };
 
-      updatePhaseProgress(data.phase, data.complete, data.selectedNodes?.length || 0);
+      updatePhaseProgress(data.phase, data.complete, data.selectedNodes?.length || 0, data);
       setPrompt(data.prompt || "");
       setPendingClarification(data.pendingClarification);
       setSelectedNodes(data.selectedNodes || []);
@@ -415,24 +437,51 @@ export default function WorkflowStatusPage() {
     return () => clearInterval(interval);
   }, [sessionId, complete, phase, selectedNodes.length, fetchStatus]);
 
-  // Load discovery icons on mount
+  // Load discovery icons from backend
   useEffect(() => {
-    const loadDiscoveryIcons = () => {
-      // Use fallback icons directly since manifest endpoint doesn't exist
-      const fallbackIcons = [
-        'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
-        'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split',
-        'openAi', 'anthropic', 'airtable', 'github', 'trello', 'asana',
-        'facebookGraphApi', 'youTube', 'googleAds', 'splitInBatches'
-      ];
-      setDiscoveryIcons(fallbackIcons);
-      if (fallbackIcons.length > 0) {
-        setCurrentDiscoveryIcon(fallbackIcons[Math.floor(Math.random() * fallbackIcons.length)]);
+    const loadDiscoveryIcons = async () => {
+      try {
+        // Try to get real node types from the current session first
+        if (selectedNodes.length > 0) {
+          const nodeTypes = selectedNodes.map(node => simplifyIconName(node.nodeType));
+          setDiscoveryIcons(nodeTypes);
+          setCurrentDiscoveryIcon(nodeTypes[Math.floor(Math.random() * nodeTypes.length)]);
+          return;
+        }
+
+        // If no session nodes yet, try to get available node types from backend
+        const response = await fetch('/api/nodes/available');
+        if (response.ok) {
+          const data = await response.json();
+          const nodeTypes = data.nodeTypes || [];
+          if (nodeTypes.length > 0) {
+            setDiscoveryIcons(nodeTypes);
+            setCurrentDiscoveryIcon(nodeTypes[Math.floor(Math.random() * nodeTypes.length)]);
+            return;
+          }
+        }
+
+        // Fallback only if backend is unavailable
+        const fallbackIcons = [
+          'slack', 'gmail', 'googleSheets', 'notion', 'discord', 'webhook',
+          'httpRequest', 'code', 'schedule', 'filter', 'merge', 'split',
+          'openAi', 'anthropic', 'airtable', 'github', 'trello', 'asana'
+        ];
+        setDiscoveryIcons(fallbackIcons);
+        if (fallbackIcons.length > 0) {
+          setCurrentDiscoveryIcon(fallbackIcons[Math.floor(Math.random() * fallbackIcons.length)]);
+        }
+      } catch (error) {
+        console.error('Failed to load discovery icons from backend:', error);
+        // Use minimal fallback on error
+        const fallbackIcons = ['webhook', 'code', 'schedule'];
+        setDiscoveryIcons(fallbackIcons);
+        setCurrentDiscoveryIcon(fallbackIcons[0]);
       }
     };
 
     loadDiscoveryIcons();
-  }, []);
+  }, [selectedNodes]);
 
   // Rotate discovery icons during discovery phase - much faster for engagement
   useEffect(() => {
@@ -618,7 +667,7 @@ export default function WorkflowStatusPage() {
     };
   }, [phase, selectedNodes, polishedIds]);
 
-  // Humor toasts during configuration and polishing
+  // Real-time status messages from backend during processing phases
   useEffect(() => {
     const isEngagementPhase =
       phase === "configuration" ||
@@ -631,46 +680,59 @@ export default function WorkflowStatusPage() {
       return;
     }
 
-    const ensureMessagesLoaded = async () => {
-      if (!humorMessagesRef.current) {
-        try {
-          const res = await fetch("/data/humor-messages.json", {
-            cache: "no-store",
-          });
-          if (res.ok) {
-            const arr = (await res.json()) as string[];
-            humorMessagesRef.current = Array.isArray(arr) ? arr : [];
+    const fetchStatusMessages = async () => {
+      try {
+        // Get real-time status messages from backend
+        const response = await fetch(`/api/workflow/${sessionId}/status-messages`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.messages && data.messages.length > 0) {
+            humorMessagesRef.current = data.messages;
           } else {
-            humorMessagesRef.current = [];
+            // Fallback to static messages if backend doesn't provide any
+            humorMessagesRef.current = [
+              "Connecting the dots...",
+              "Optimizing workflow logic...",
+              "Fine-tuning integrations...",
+              "Almost there..."
+            ];
           }
-        } catch {
-          humorMessagesRef.current = [];
+        } else {
+          // Use minimal fallback messages
+          humorMessagesRef.current = [
+            "Processing...",
+            "Working on it...",
+            "Almost ready..."
+          ];
         }
+      } catch (error) {
+        console.error('Failed to fetch status messages:', error);
+        humorMessagesRef.current = ["Processing your workflow..."];
       }
     };
 
-    const scheduleNextHumor = () => {
+    const scheduleNextMessage = () => {
       if (!humorMessagesRef.current || humorMessagesRef.current.length === 0)
         return;
-      // random delay 4–9s for higher engagement
-      const delay = 4000 + Math.floor(Math.random() * 5000);
+      // Show messages less frequently to avoid spam
+      const delay = 6000 + Math.floor(Math.random() * 4000); // 6-10s
       humorTimerRef.current = setTimeout(() => {
         const msgs = humorMessagesRef.current!;
         const msg = msgs[Math.floor(Math.random() * msgs.length)];
         setToastMessage(msg);
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         toastTimerRef.current = setTimeout(() => setToastMessage(""), 2400);
-        scheduleNextHumor();
+        scheduleNextMessage();
       }, delay);
     };
 
-    ensureMessagesLoaded().then(scheduleNextHumor);
+    fetchStatusMessages().then(scheduleNextMessage);
 
     return () => {
       if (humorTimerRef.current) clearTimeout(humorTimerRef.current);
       humorTimerRef.current = null;
     };
-  }, [phase]);
+  }, [phase, sessionId]);
 
   // Phase mapping for chips - more accurate mapping
   const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
@@ -943,15 +1005,34 @@ export default function WorkflowStatusPage() {
                   </div>
                 </div>
                 
-                {/* Progress bar */}
+                {/* Dynamic progress bar based on real backend data */}
                 <div className="w-full bg-neutral-200 rounded-full h-2">
                   <div 
                     className="bg-emerald-600 h-2 rounded-full transition-all duration-500 ease-out"
                     style={{
-                      width: phase === "configuration" ? "25%" :
-                             phase === "building" ? "60%" :
-                             phase === "validation" ? "80%" :
-                             phase === "documentation" ? "95%" : "10%"
+                      width: (() => {
+                        // Use real progress data from backend if available
+                        const statusResponse = sessionStorage.getItem(`workflow_status_${sessionId}`);
+                        if (statusResponse) {
+                          try {
+                            const status = JSON.parse(statusResponse);
+                            if (status.progress && typeof status.progress === 'number') {
+                              return `${Math.min(100, Math.max(0, status.progress))}%`;
+                            }
+                          } catch (e) {
+                            console.warn('Failed to parse stored status:', e);
+                          }
+                        }
+                        
+                        // Fallback to phase-based estimation
+                        switch (phase) {
+                          case "configuration": return "25%";
+                          case "building": return "60%";
+                          case "validation": return "80%";
+                          case "documentation": return "95%";
+                          default: return "10%";
+                        }
+                      })()
                     }}
                   ></div>
                 </div>
