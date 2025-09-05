@@ -226,17 +226,31 @@ export default function WorkflowStatusPage() {
       const data = await response.json();
 
       // Debug logging for phase transitions
-      if (data.phase !== phase) {
+      if (data.phase !== phase || data.complete !== complete) {
         console.log(`Phase transition: ${phase} -> ${data.phase}`, {
           selectedNodes: data.selectedNodes?.length || 0,
           complete: data.complete,
+          previousComplete: complete,
           timestamp: new Date().toISOString()
         });
       }
 
+      // Update state first, then update progress messages
+      setPhase(data.phase);
+      setComplete(data.complete);
+
       // Update phase progress with detailed messages
-      const updatePhaseProgress = (currentPhase: string, nodeCount: number = 0) => {
-        console.log(`Updating phase progress: ${currentPhase} with ${nodeCount} nodes`);
+      const updatePhaseProgress = (currentPhase: string, isComplete: boolean, nodeCount: number = 0) => {
+        console.log(`Updating phase progress: ${currentPhase} with ${nodeCount} nodes, complete: ${isComplete}`);
+        
+        if (isComplete) {
+          setPhaseProgress({
+            current: "complete",
+            message: "Workflow generation complete!",
+            details: "Your workflow has been successfully created and is ready to use"
+          });
+          return;
+        }
         
         switch (currentPhase) {
           case "discovery":
@@ -291,10 +305,7 @@ export default function WorkflowStatusPage() {
         }
       };
 
-      updatePhaseProgress(data.phase, data.selectedNodes?.length || 0);
-
-      setPhase(data.phase);
-      setComplete(data.complete);
+      updatePhaseProgress(data.phase, data.complete, data.selectedNodes?.length || 0);
       setPrompt(data.prompt || "");
       setPendingClarification(data.pendingClarification);
       setSelectedNodes(data.selectedNodes || []);
@@ -627,7 +638,8 @@ export default function WorkflowStatusPage() {
 
   // Phase mapping for chips - more accurate mapping
   const progressStep: "discovering" | "configuring" | "building" | "polishing" = (() => {
-    if (complete) return "polishing"; // Show as complete
+    // If complete, show as polishing (final state)
+    if (complete) return "polishing";
     
     // Map phases more accurately - trust the backend phase value
     switch (phase) {
@@ -641,7 +653,8 @@ export default function WorkflowStatusPage() {
       case "documentation":
         return "polishing";
       default:
-        // Handle any unknown phases - default based on nodes
+        // Handle any unknown phases - default based on nodes and completion
+        if (complete) return "polishing";
         if (selectedNodes.length === 0) return "discovering";
         if (selectedNodes.length > 0) return "configuring";
         return "discovering";
