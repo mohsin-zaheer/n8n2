@@ -1,57 +1,86 @@
-import { createServiceClient } from "@/lib/supabase";
+"use server";
 
+import { createClient } from "@supabase/supabase-js";
+import { normalizeNodeType } from "@/lib/utils/node-type-utils";
+
+// Database schema for n8n_nodes table
 export interface NodeMetadata {
-  id: string;
+  id: number;
   name: string;
-  display_name: string;
-  description?: string;
-  category?: string;
-  requires_auth: boolean;
-  configuration_doc_url?: string;
-  official_doc_url?: string;
-  configuration_guide?: string;
-  icon_name?: string;
-  created_at: string;
-  updated_at: string;
+  node_type: string;
+  key_parameters?: string;
+  essential_settings?: Array<{
+    name: string;
+    description: string;
+  }>;
+  documentation_url?: string;
+  primary_documentation_url?: string;
+  credential_documentation_url?: string;
+  business_use_cases?: string[];
+  requires_auth?: boolean;
+  auth_methods?: string[];
+  credential_types?: string[];
 }
 
+/**
+ * Fetch node metadata for multiple node types from the database
+ */
 export async function getNodeMetadata(nodeTypes: string[]): Promise<Record<string, NodeMetadata>> {
-  if (!nodeTypes.length) return {};
-
   try {
-    const supabase = createServiceClient();
+    // Normalize all node types before querying
+    const normalizedTypes = nodeTypes.map(normalizeNodeType);
     
-    // Clean node types to match database format
-    const cleanNodeTypes = nodeTypes.map(type => 
-      type.replace("n8n-nodes-base.", "")
-          .replace("@n8n/n8n-nodes-langchain.", "")
-          .replace("nodes-base.", "")
-          .replace("nodes-langchain.", "")
-          .split(".")[0]
+    // Remove duplicates
+    const uniqueTypes = [...new Set(normalizedTypes)];
+    
+    console.log('Fetching metadata for node types:', uniqueTypes);
+    
+    if (uniqueTypes.length === 0) {
+      return {};
+    }
+    
+    // Create Supabase client with service role key for server-side access
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!
     );
-
+    
+    // Query the n8n_nodes table
     const { data, error } = await supabase
       .from('n8n_nodes')
-      .select('*')
-      .in('name', cleanNodeTypes);
-
+      .select('id, name, node_type, key_parameters, essential_settings, documentation_url, primary_documentation_url, credential_documentation_url, business_use_cases, requires_auth, auth_methods, credential_types')
+      .in('node_type', uniqueTypes);
+    
     if (error) {
       console.error('Error fetching node metadata:', error);
       return {};
     }
-
-    // Create a lookup object keyed by original node type
-    const metadataLookup: Record<string, NodeMetadata> = {};
     
-    nodeTypes.forEach((originalType, index) => {
-      const cleanType = cleanNodeTypes[index];
-      const metadata = data?.find(node => node.name === cleanType);
-      if (metadata) {
-        metadataLookup[originalType] = metadata;
+    if (!data) {
+      console.log('No data returned from database');
+      return {};
+    }
+    
+    console.log(`Found ${data.length} nodes in database`);
+    
+    // Create a map with both normalized and original keys for easy lookup
+    const metadataMap: Record<string, NodeMetadata> = {};
+    
+    data.forEach((node) => {
+      metadataMap[node.node_type] = node;
+    });
+    
+    // Also map original (non-normalized) types to the same metadata
+    nodeTypes.forEach((originalType) => {
+      const normalizedType = normalizeNodeType(originalType);
+      if (metadataMap[normalizedType]) {
+        metadataMap[originalType] = metadataMap[normalizedType];
       }
     });
-
-    return metadataLookup;
+    
+    console.log('Metadata map keys:', Object.keys(metadataMap));
+    
+    return metadataMap;
   } catch (error) {
     console.error('Error in getNodeMetadata:', error);
     return {};
