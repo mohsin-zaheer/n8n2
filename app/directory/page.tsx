@@ -330,7 +330,7 @@ const WorkflowDirectoryContent = () => {
           ) : (
             <>
               {currentWorkflows.map((workflow) => (
-                <WorkflowCard key={workflow.session_id} workflow={workflow} />
+                <WorkflowCard key={workflow.session_id} workflow={workflow} dynamicCategories={dynamicCategories} />
               ))}
             </>
           )}
@@ -436,7 +436,7 @@ const WorkflowCardSkeleton = () => (
 )
 
 // Workflow Card Component - Memoized for performance
-const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workflow }) => {
+const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult; dynamicCategories: CategoryWithSubcategories[] }> = memo(({ workflow, dynamicCategories }) => {
   // Console log SEO metadata for debugging
   console.log('SEO Metadata for workflow:', workflow.session_id, workflow.seoMetadata);
   
@@ -532,7 +532,7 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
                   if (!finalSubcategoryName && dynamicCategories.length > 0) {
                     for (const category of dynamicCategories) {
                       if (category.subcategories) {
-                        const foundSubcat = category.subcategories.find(sub => sub.id === workflow.seoMetadata.subcategory_id);
+                        const foundSubcat = category.subcategories.find((sub: Category) => sub.id === workflow.seoMetadata?.subcategory_id);
                         if (foundSubcat) {
                           finalSubcategoryName = foundSubcat.name;
                           break;
