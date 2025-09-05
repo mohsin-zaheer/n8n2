@@ -485,8 +485,6 @@ export default function WorkflowStatusPage() {
       clearInterval(interval);
       clearInterval(stuckCheckInterval);
     };
-
-    return () => clearInterval(interval);
   }, [sessionId, complete, phase, selectedNodes.length, fetchStatus]);
 
   // Load discovery icons - use session nodes when available, fallback to common icons
