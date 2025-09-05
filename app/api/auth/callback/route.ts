@@ -8,6 +8,9 @@ export async function GET(request: Request) {
   let origin: string = '';
   
   try {
+    console.log('=== AUTH CALLBACK START ===');
+    console.log('Request URL:', request.url);
+    
     const { searchParams, origin: requestOrigin } = new URL(request.url);
     origin = requestOrigin;
     const code = searchParams.get('code');
@@ -17,6 +20,7 @@ export async function GET(request: Request) {
     console.log('Callback route - code present:', !!code);
     console.log('Callback route - error:', error);
     console.log('Callback route - redirectTo:', redirectTo);
+    console.log('Callback route - origin:', origin);
 
     // Handle OAuth errors from provider
     if (error) {
@@ -29,84 +33,107 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/?auth=error&message=no_code`);
     }
 
-    // Add timeout to prevent hanging requests
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Auth exchange timeout')), 15000);
-    });
+    console.log('Creating Supabase client...');
+    let supabase;
+    try {
+      supabase = await createServerClientInstance();
+      console.log('Supabase client created successfully');
+    } catch (supabaseError) {
+      console.error('Failed to create Supabase client:', supabaseError);
+      throw new Error('Supabase client creation failed');
+    }
 
-    const exchangePromise = (async () => {
-      const supabase = await createServerClientInstance();
-      
-      const { data: authData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    console.log('Exchanging code for session...');
+    let authData;
+    try {
+      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
       
       if (exchangeError) {
-        console.error('Auth callback error:', exchangeError);
+        console.error('Auth exchange error:', exchangeError);
         throw exchangeError;
       }
       
-      if (!authData?.user) {
+      if (!data?.user) {
         console.error('No user data after successful exchange');
         throw new Error('No user data returned');
       }
 
-      return authData;
-    })();
+      authData = data;
+      console.log('Auth exchange successful, user ID:', authData.user.id);
+    } catch (exchangeError) {
+      console.error('Exchange process failed:', exchangeError);
+      throw exchangeError;
+    }
 
-    const authData = await Promise.race([exchangePromise, timeoutPromise]) as any;
-    
-    console.log('Callback route - user authenticated:', authData.user?.id);
-
-    // Check if this is a user returning from login with a pending workflow
-    // The redirectTo will be like /workflow/wf_123456_abc
+    // Handle workflow redirect cookie
     if (redirectTo.startsWith('/workflow/')) {
+      console.log('Setting workflow authentication cookie...');
       try {
-        // Store a flag in cookies to indicate user just authenticated
         const cookieStore = await cookies();
         cookieStore.set('just_authenticated', 'true', {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
-          maxAge: 60, // 1 minute expiry
+          maxAge: 60,
           path: '/'
         });
+        console.log('Workflow cookie set successfully');
       } catch (cookieError) {
         console.error('Error setting authentication cookie:', cookieError);
         // Continue without the cookie - not critical
       }
     }
     
-    // Redirect to the intended destination (will be /workflow/[sessionId])
-    console.log('Callback route - redirecting to:', `${origin}${redirectTo}`);
-    return NextResponse.redirect(`${origin}${redirectTo}`);
+    const redirectUrl = `${origin}${redirectTo}`;
+    console.log('Redirecting to:', redirectUrl);
+    console.log('=== AUTH CALLBACK SUCCESS ===');
+    
+    return NextResponse.redirect(redirectUrl);
     
   } catch (err: any) {
-    console.error('Callback route error:', err);
+    console.error('=== AUTH CALLBACK ERROR ===');
+    console.error('Error details:', {
+      message: err?.message,
+      stack: err?.stack,
+      name: err?.name,
+      cause: err?.cause
+    });
     
     // Ensure we have an origin for redirect
     if (!origin) {
       try {
         origin = new URL(request.url).origin;
-      } catch {
+        console.log('Fallback origin from request URL:', origin);
+      } catch (urlError) {
         origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        console.log('Using environment fallback origin:', origin);
       }
     }
     
     // Clear any potentially corrupted cookies
     try {
+      console.log('Clearing potentially corrupted cookies...');
       const cookieStore = await cookies();
       const allCookies = cookieStore.getAll();
+      let clearedCount = 0;
       allCookies.forEach(cookie => {
         if (cookie.name.startsWith('sb-') || cookie.name === 'just_authenticated') {
           cookieStore.delete(cookie.name);
+          clearedCount++;
         }
       });
+      console.log(`Cleared ${clearedCount} cookies`);
     } catch (cookieError) {
       console.error('Error clearing cookies:', cookieError);
     }
     
     const errorMessage = err?.message || 'server_error';
     const encodedMessage = encodeURIComponent(errorMessage);
+    const errorRedirectUrl = `${origin}/?auth=error&message=${encodedMessage}`;
     
-    return NextResponse.redirect(`${origin}/?auth=error&message=${encodedMessage}`);
+    console.log('Error redirect URL:', errorRedirectUrl);
+    console.log('=== AUTH CALLBACK ERROR END ===');
+    
+    return NextResponse.redirect(errorRedirectUrl);
   }
 }
