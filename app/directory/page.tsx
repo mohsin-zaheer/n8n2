@@ -504,35 +504,27 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
             const categoryId = workflow.seoMetadata.category_id;
             const Icon = categoryIcons[categoryId];
             
-            // Debug logging to see what's happening
-            console.log('Category debug:', {
-              categoryId,
-              categoryName,
-              hasIcon: !!Icon,
-              iconName: Icon?.name
-            });
+            // Only show if we have a valid category name
+            if (!categoryName) return null;
             
             return (
               <>
                 {/* Main category in black pill with white text and icon */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
                   {Icon && <Icon className="h-3 w-3" />}
-                  {categoryName || categoryId} {/* Show categoryId as fallback if name is empty */}
+                  {categoryName}
                 </span>
                 
                 {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  console.log('Subcategory debug:', {
-                    subcategoryId: workflow.seoMetadata.subcategory_id,
-                    subcategoryName
-                  });
-                  return (
+                  // Only show subcategory if we have a valid name
+                  return subcategoryName ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
                       <ChevronRight className="h-3 w-3" />
-                      {subcategoryName || workflow.seoMetadata.subcategory_id} {/* Show ID as fallback */}
+                      {subcategoryName}
                     </span>
-                  );
+                  ) : null;
                 })()}
               </>
             );
