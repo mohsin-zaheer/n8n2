@@ -457,7 +457,7 @@ const WorkflowDirectoryContent = () => {
               </h3>
               <p className="text-gray-500 text-sm sm:text-base px-4">
                 {searchQuery 
-                  ? `No workflows match "${searchQuery}". Try different keywords or browse all workflows.`
+                  ? `No workflows match &quot;${searchQuery}&quot;. Try different keywords or browse all workflows.`
                   : 'No workflows available in this category.'
                 }
               </p>
