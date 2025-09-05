@@ -498,42 +498,51 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
             </span>
           )}
           
-          {/* Category hierarchy pills - only show if new data exists and has valid names */}
+          {/* Category hierarchy pills - show new format if category_id exists */}
           {workflow.seoMetadata?.category_id && (() => {
             const categoryName = getCategoryName(workflow.seoMetadata.category_id);
             const categoryId = workflow.seoMetadata.category_id;
             const Icon = categoryIcons[categoryId];
             
-            return categoryName ? (
+            // Debug logging to see what's happening
+            console.log('Category debug:', {
+              categoryId,
+              categoryName,
+              hasIcon: !!Icon,
+              iconName: Icon?.name
+            });
+            
+            return (
               <>
                 {/* Main category in black pill with white text and icon */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
                   {Icon && <Icon className="h-3 w-3" />}
-                  {categoryName}
+                  {categoryName || categoryId} {/* Show categoryId as fallback if name is empty */}
                 </span>
                 
                 {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  return subcategoryName ? (
+                  console.log('Subcategory debug:', {
+                    subcategoryId: workflow.seoMetadata.subcategory_id,
+                    subcategoryName
+                  });
+                  return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
                       <ChevronRight className="h-3 w-3" />
-                      {subcategoryName}
+                      {subcategoryName || workflow.seoMetadata.subcategory_id} {/* Show ID as fallback */}
                     </span>
-                  ) : null;
+                  );
                 })()}
               </>
-            ) : null;
+            );
           })()}
           
-          
-          {/* Fallback to old category field if no new data or invalid category_id */}
-          {(!workflow.seoMetadata?.category_id || !getCategoryName(workflow.seoMetadata.category_id)) && workflow.seoMetadata?.category && (
+          {/* Fallback to old category field if no category_id */}
+          {!workflow.seoMetadata?.category_id && workflow.seoMetadata?.category && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
               <Zap className="h-3 w-3" />
               {workflow.seoMetadata.category}
-
-              
             </span>
           )}
           
