@@ -188,7 +188,7 @@ export default function WorkflowStatusPage() {
       setError(err.message || "Failed to create workflow");
       setLoading(false);
     }
-  }, [sessionId, router]);
+  }, [sessionId, router, fetchStatus]);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -348,7 +348,7 @@ export default function WorkflowStatusPage() {
     }, getPollingInterval());
 
     return () => clearInterval(interval);
-  }, [sessionId, complete, fetchStatus]);
+  }, [sessionId, complete, fetchStatus, phase, selectedNodes.length]);
 
   // Load discovery icons on mount
   useEffect(() => {
