@@ -238,11 +238,25 @@ export default function WorkflowStatusPage() {
         selectedNodes: data.selectedNodes?.length || 0,
         seoSlug: data.seoSlug,
         progress: data.progress,
-        progressMessage: data.progressMessage
+        progressMessage: data.progressMessage,
+        rawData: data // Log full response for debugging
       });
 
       // Store latest status for progress bar calculation
       sessionStorage.setItem(`workflow_status_${sessionId}`, JSON.stringify(data));
+
+      // Validate that we're getting proper data structure
+      if (!data.phase) {
+        console.error('Invalid response: missing phase', data);
+        return;
+      }
+
+      // Handle case where selectedNodes might be an array of objects vs just a count
+      const nodeCount = Array.isArray(data.selectedNodes) 
+        ? data.selectedNodes.length 
+        : (typeof data.selectedNodes === 'number' ? data.selectedNodes : 0);
+      
+      console.log('Processed node count:', nodeCount, 'from:', data.selectedNodes);
 
       // Debug logging for phase transitions
       if (data.phase !== phase || data.complete !== complete) {
@@ -276,8 +290,22 @@ export default function WorkflowStatusPage() {
       }
 
       // Update state first, then update progress messages
-      setPhase(data.phase);
-      setComplete(data.complete);
+      const newPhase = data.phase || 'discovery';
+      const isComplete = Boolean(data.complete);
+      const nodeCount = Array.isArray(data.selectedNodes) 
+        ? data.selectedNodes.length 
+        : (typeof data.selectedNodes === 'number' ? data.selectedNodes : 0);
+
+      console.log('Setting state:', { 
+        newPhase, 
+        isComplete, 
+        nodeCount,
+        previousPhase: phase,
+        previousComplete: complete 
+      });
+
+      setPhase(newPhase);
+      setComplete(isComplete);
 
       // Update phase progress with real-time backend data
       const updatePhaseProgress = (currentPhase: string, isComplete: boolean, nodeCount: number = 0, backendData: any = {}) => {
@@ -362,16 +390,23 @@ export default function WorkflowStatusPage() {
         }
       };
 
-      updatePhaseProgress(data.phase, data.complete, data.selectedNodes?.length || 0, data);
+      updatePhaseProgress(newPhase, isComplete, nodeCount, data);
       setPrompt(data.prompt || "");
       setPendingClarification(data.pendingClarification);
-      setSelectedNodes(data.selectedNodes || []);
+      
+      // Handle selectedNodes - ensure it's always an array
+      const nodes = Array.isArray(data.selectedNodes) 
+        ? data.selectedNodes 
+        : [];
+      
+      console.log('Setting selectedNodes:', nodes);
+      setSelectedNodes(nodes);
       setLoading(false);
       if (data.seoSlug) seoSlugRef.current = data.seoSlug as string;
       setError("");
 
       // Handle completion and redirect
-      if (data.complete && !complete) {
+      if (isComplete && !complete) {
         // Only redirect if this is the first time we're seeing completion
         console.log('Workflow completed, preparing redirect...', {
           seoSlug: data.seoSlug || seoSlugRef.current,
@@ -433,6 +468,23 @@ export default function WorkflowStatusPage() {
         fetchStatus();
       }
     }, getPollingInterval());
+
+    // Add cleanup for stuck states - if no progress for 30 seconds, force refresh
+    const stuckCheckInterval = setInterval(() => {
+      const lastChange = sessionStorage.getItem(`lastPhaseChange_${sessionId}`);
+      const lastChangeTime = lastChange ? parseInt(lastChange) : Date.now();
+      const timeSinceChange = Date.now() - lastChangeTime;
+      
+      if (timeSinceChange > 30000 && !complete) { // 30 seconds without change
+        console.warn('Workflow appears stuck, forcing status refresh');
+        fetchStatus();
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(stuckCheckInterval);
+    };
 
     return () => clearInterval(interval);
   }, [sessionId, complete, phase, selectedNodes.length, fetchStatus]);
