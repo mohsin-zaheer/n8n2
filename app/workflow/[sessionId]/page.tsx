@@ -188,7 +188,7 @@ export default function WorkflowStatusPage() {
       setError(err.message || "Failed to create workflow");
       setLoading(false);
     }
-  }, [sessionId, router]);
+  }, [sessionId, router, fetchStatus]);
 
   const fetchStatus = useCallback(async () => {
     // Don't fetch if we're already complete and have redirected
@@ -441,7 +441,7 @@ export default function WorkflowStatusPage() {
       setError("Failed to connect to server");
       setLoading(false);
     }
-  }, [sessionId, router, phase, complete, handlePendingWorkflow]);
+  }, [sessionId, router, phase, complete, handlePendingWorkflow, selectedNodes.length]);
 
   useEffect(() => {
     if (!sessionId) {
