@@ -97,7 +97,7 @@ export default function WorkflowStatusPage() {
   const discoveryIconTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle pending workflow creation for authenticated users
-  const handlePendingWorkflow = useCallback(async () => {
+  const handlePendingWorkflow = useCallback(async (): Promise<void> => {
     try {
       const supabase = createClient();
 
