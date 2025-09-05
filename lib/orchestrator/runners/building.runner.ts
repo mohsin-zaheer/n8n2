@@ -105,10 +105,10 @@ export class BuildingRunner
       });
 
       // Have Claude build the complete workflow with the built prompt parts
-      const claudeResult = await this.deps.claudeService.run(
+      const claudeResult = await this.deps.claudeService.execute(
         {
           promptParts, // Pass the properly structured prompt parts
-          userIntent: userPrompt,
+          userPrompt,
           configuredNodes: validatedNodes,
         },
         { sessionId }
