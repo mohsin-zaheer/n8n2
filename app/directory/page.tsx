@@ -50,13 +50,17 @@ const WorkflowDirectoryContent = () => {
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [workflows, setWorkflows] = useState<WorkflowSearchResult[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [onlyVetted, setOnlyVetted] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    return searchParams.get('category') || 'all'
+  })
+  const [onlyVetted, setOnlyVetted] = useState(() => {
+    return searchParams.get('vetted') === 'true'
+  })
   const [currentPage, setCurrentPage] = useState(1)
   const [dynamicCategories, setDynamicCategories] = useState<CategoryWithSubcategories[]>([])
   const itemsPerPage = 12
 
-  // Initialize filters from URL parameters
+  // Initialize filters from URL parameters - run immediately on mount
   useEffect(() => {
     const categoryParam = searchParams.get('category')
     const searchParam = searchParams.get('search')
@@ -73,7 +77,7 @@ const WorkflowDirectoryContent = () => {
     if (vettedParam === 'true') {
       setOnlyVetted(true)
     }
-  }, [searchParams])
+  }, []) // Remove searchParams dependency to run only once on mount
 
   // Load categories on component mount
   useEffect(() => {
