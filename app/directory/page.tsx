@@ -507,27 +507,46 @@ const WorkflowCard: React.FC<{ workflow: WorkflowSearchResult }> = memo(({ workf
             const categoryId = workflow.seoMetadata.category_id;
             const Icon = categoryIcons[categoryId];
             
-            // Only show if we have a valid category name
-            if (!categoryName) return null;
+            console.log('Category lookup:', {
+              categoryId: workflow.seoMetadata.category_id,
+              categoryName,
+              subcategoryId: workflow.seoMetadata.subcategory_id,
+              subcategoryName: workflow.seoMetadata.subcategory_id ? getSubcategoryName(workflow.seoMetadata.subcategory_id) : null,
+              dynamicCategories: dynamicCategories.length
+            });
             
             return (
               <>
                 {/* Main category in black pill with white text and icon */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-black text-white">
                   {Icon && <Icon className="h-3 w-3" />}
-                  {categoryName}
+                  {categoryName || workflow.seoMetadata.category_id}
                 </span>
                 
                 {/* Subcategory - white with black border */}
                 {workflow.seoMetadata?.subcategory_id && (() => {
                   const subcategoryName = getSubcategoryName(workflow.seoMetadata.subcategory_id);
-                  // Only show subcategory if we have a valid name
-                  return subcategoryName ? (
+                  
+                  // Try to find subcategory name from dynamicCategories if helper function fails
+                  let finalSubcategoryName = subcategoryName;
+                  if (!finalSubcategoryName && dynamicCategories.length > 0) {
+                    for (const category of dynamicCategories) {
+                      if (category.subcategories) {
+                        const foundSubcat = category.subcategories.find(sub => sub.id === workflow.seoMetadata.subcategory_id);
+                        if (foundSubcat) {
+                          finalSubcategoryName = foundSubcat.name;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                  
+                  return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white text-black border-2 border-gray-400">
                       <ChevronRight className="h-3 w-3" />
-                      {subcategoryName}
+                      {finalSubcategoryName || workflow.seoMetadata.subcategory_id}
                     </span>
-                  ) : null;
+                  );
                 })()}
               </>
             );
