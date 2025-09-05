@@ -408,12 +408,11 @@ const WorkflowDirectoryContent = () => {
                         </div>
                       ))}
 
-                      {/* No Results */}
-                      {categorySearchQuery && filteredCategories.length === 0 && (
-                        <div className="px-3 py-4 text-center text-gray-500 text-sm">
-                          No categories found for "{categorySearchQuery}"
-                        </div>
-                      )}
+                     {categorySearchQuery && filteredCategories.length === 0 && (
+                      <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                        No categories found for &quot;{categorySearchQuery}&quot;
+                      </div>
+                    )}
                     </div>
                   </div>
                 )}
@@ -456,10 +455,10 @@ const WorkflowDirectoryContent = () => {
                 No workflows found
               </h3>
               <p className="text-gray-500 text-sm sm:text-base px-4">
-                {searchQuery 
-                  ? `No workflows match "${searchQuery}". Try different keywords or browse all workflows.`
-                  : 'No workflows available in this category.'
-                }
+                  {searchQuery 
+                    ? <>No workflows match &quot;{searchQuery}&quot;. Try different keywords or browse all workflows.</>
+                    : 'No workflows available in this category.'
+                  }
               </p>
             </div>
           ) : (
