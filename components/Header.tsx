@@ -11,6 +11,9 @@ import { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import styles from "../stylesheets/nav.module.css";
 import { Icon } from "@iconify/react";
+import { loadCategories, getCategoryHierarchy, categoryIcons } from "@/lib/services/category-helper.service";
+import { CategoryWithSubcategories } from "@/types/categories";
+import { Search, ChevronRight } from "lucide-react";
 
 type HeaderVariant = "landing" | "default";
 
@@ -21,6 +24,7 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<CategoryWithSubcategories[]>([]);
 
   // Mobile menu state
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -36,6 +40,67 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
       };
     }
   }, [mobileOpen]);
+
+  // Load categories from Supabase in real-time
+  useEffect(() => {
+    const supabase = createClient();
+    
+    const loadCategoriesData = async () => {
+      try {
+        // Fetch categories from Supabase
+        const { data: categoriesData, error } = await supabase
+          .from('categories')
+          .select(`
+            id,
+            name,
+            description,
+            subcategories (
+              id,
+              name,
+              description
+            )
+          `)
+          .eq('active', true)
+          .neq('id', 'cat_8') // Filter out 'Other' category
+          .order('name');
+
+        if (error) {
+          console.error('Error loading categories:', error);
+          // Fallback to local categories
+          await loadCategories();
+          const hierarchy = getCategoryHierarchy();
+          const filteredCategories = hierarchy.filter(cat => cat.id !== 'cat_8');
+          setCategories(filteredCategories);
+        } else {
+          setCategories(categoriesData || []);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Fallback to local categories
+        await loadCategories();
+        const hierarchy = getCategoryHierarchy();
+        const filteredCategories = hierarchy.filter(cat => cat.id !== 'cat_8');
+        setCategories(filteredCategories);
+      }
+    };
+
+    loadCategoriesData();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('categories_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'categories' },
+        () => {
+          loadCategoriesData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Check authentication status
   useEffect(() => {
@@ -137,69 +202,86 @@ export function Header({ variant }: { variant?: HeaderVariant }) {
               />
             </Link>
 
-            {/* Dropdown menu */}
+            {/* Enhanced Dropdown menu */}
             <div
-              className="absolute left-0 mt-2 w-56 origin-top rounded-xl border bg-white/95 backdrop-blur shadow-xl ring-1 ring-black/5
-                         opacity-0 invisible translate-y-1 scale-95 transition-all duration-200 z-50
+              className="absolute left-0 mt-3 w-80 origin-top-left rounded-2xl border border-neutral-200/60 bg-white/98 backdrop-blur-xl shadow-2xl ring-1 ring-black/5
+                         opacity-0 invisible translate-y-2 scale-95 transition-all duration-300 ease-out z-50
                          group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100"
               role="menu"
               aria-label="Directory menu"
             >
-              <ul className="py-2">
-                <li>
-                  <Link
-                    href="/directory?search=lead"
-                    role="menuitem"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem"
-                  >
-                    <Icon icon="fa6-solid:users-viewfinder" className="text-lg shrink-0 navIcon" />
-                    Leadgen
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/directory?search=linkedin"
-                    role="menuitem"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem2"
-                  >
-                    <Icon icon="iconoir:linkedin" className="text-xl shrink-0 navIcon" />
-                    Linkedin voice
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/directory?search=seo"
-                    role="menuitem"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem3"
-                  >
-                    <Icon icon="icon-park-outline:ranking-list" className="text-xl shrink-0 navIcon" />
-                    SEO and AEO
-                  </Link>
-                </li>
-                <li>
+              <div className="p-3">
+                {/* Header */}
+                <div className="px-3 py-2 mb-2">
+                  <h3 className="text-sm font-semibold text-neutral-900 mb-1">Browse Categories</h3>
+                  <p className="text-xs text-neutral-500">Discover workflows by category</p>
+                </div>
+
+                {/* Categories Grid */}
+                <div className="grid grid-cols-1 gap-1 mb-3">
+                  {categories.map((category, index) => {
+                    const IconComponent = categoryIcons[category.id];
+                    return (
+                      <div key={category.id} className="group/item">
+                        <Link
+                          href={`/directory?category=${category.id}`}
+                          role="menuitem"
+                          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-neutral-700 
+                                   transition-all duration-200 ease-out hover:bg-gradient-to-r hover:from-neutral-50 hover:to-neutral-100/50 
+                                   hover:text-neutral-900 hover:shadow-sm hover:scale-[1.02] active:scale-[0.98]
+                                   border border-transparent hover:border-neutral-200/50"
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-neutral-100 to-neutral-200/50 
+                                        group-hover/item:from-emerald-50 group-hover/item:to-emerald-100/50 transition-all duration-200">
+                            {IconComponent && <IconComponent className="h-4 w-4 text-neutral-600 group-hover/item:text-emerald-600 transition-colors duration-200" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{category.name}</div>
+                            {category.subcategories && category.subcategories.length > 0 && (
+                              <div className="text-xs text-neutral-500 mt-0.5">
+                                {category.subcategories.length} subcategories
+                              </div>
+                            )}
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-neutral-400 group-hover/item:text-neutral-600 transition-all duration-200 
+                                                 group-hover/item:translate-x-0.5" />
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Separator */}
+                <div className="border-t border-neutral-200/60 my-3"></div>
+
+                {/* Special Actions */}
+                <div className="space-y-2">
                   <Link
                     href="/directory"
                     role="menuitem"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-800 navItem4"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-neutral-700 
+                             transition-all duration-200 hover:bg-neutral-50 hover:text-neutral-900"
                   >
-                    <Icon icon="gg:more-r" className="text-xl shrink-0 navIcon" />
-                    More
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-neutral-100">
+                      <Search className="h-4 w-4 text-neutral-600" />
+                    </div>
+                    <span>Browse All Workflows</span>
                   </Link>
-                </li>
-                <li className="border-t mt-2 pt-2">
+                  
                   <Link
-                    href="/directory"
+                    href="/directory?vetted=true"
                     role="menuitem"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg transition-colors text-white"
-                    style={{ 
-                      background: 'rgb(27, 200, 140)'
-                    }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-white 
+                             transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]
+                             bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
                   >
-                    <Icon icon="mdi:shield-check" className="text-xl shrink-0" />
-                    Vetted workflows
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20">
+                      <Icon icon="mdi:shield-check" className="h-4 w-4" />
+                    </div>
+                    <span>Vetted Workflows Only</span>
                   </Link>
-                </li>
-              </ul>
+                </div>
+              </div>
             </div>
           </div>
 
