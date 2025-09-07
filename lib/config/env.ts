@@ -58,7 +58,7 @@ export function getEnv(): Env {
         NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co',
         NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key',
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || 'sk-test',
-        MCP_SERVER_URL: process.env.MCP_SERVER_URL || 'https://mcp.smithery.ai',
+        MCP_SERVER_URL: process.env.MCP_SERVER_URL || 'http://localhost:3001',
         MCP_API_KEY: process.env.MCP_API_KEY || 'test-key',
         MCP_PROFILE: process.env.MCP_PROFILE || 'test',
         CRON_SECRET: process.env.CRON_SECRET || 'test-secret',
