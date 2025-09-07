@@ -1,6 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { createSmitheryUrl } from '@smithery/sdk/shared/config.js';
 import type { 
   ListResourcesResult, 
   ListToolsResult, 
@@ -18,8 +17,7 @@ import { perfTracker } from './utils/performance-tracker';
  */
 interface MCPClientConfig {
   serverUrl: string;
-  apiKey: string;
-  profile: string;
+  authToken: string;
   maxRetries?: number;
   retryDelay?: number;
   connectionTimeout?: number;
@@ -117,7 +115,7 @@ class MCPClient {
         await this.connectStreamableHTTP();
       }, { 
         serverUrl: this.config.serverUrl,
-        profile: this.config.profile,
+        authToken: this.config.authToken,
         isReconnecting: this.isReconnecting 
       });
     } catch (error) {
@@ -129,7 +127,7 @@ class MCPClient {
   }
 
   /**
-   * Connect using Streamable HTTP transport with keep-alive
+   * Connect using Streamable HTTP transport with Authorization header
    */
   private async connectStreamableHTTP(): Promise<void> {
     this.client = new Client({
@@ -137,16 +135,15 @@ class MCPClient {
       version: '1.0.0'
     });
 
-    // Use Smithery SDK to create the URL with proper authentication
-    const serverUrl = createSmitheryUrl(this.config.serverUrl, { 
-      apiKey: this.config.apiKey, 
-      profile: this.config.profile 
-    });
-
-    // Configure HTTP transport with optimized settings
-    // VERIFIED: keepalive: true in RequestInit is NOT supported in Vercel's undici implementation
-    // See: https://github.com/vercel/next.js/issues/48691
-    this.transport = new StreamableHTTPClientTransport(serverUrl, {
+    // Configure HTTP transport with Authorization header
+    this.transport = new StreamableHTTPClientTransport(this.config.serverUrl, {
+      // Add Authorization header for custom MCP server
+      requestInit: {
+        headers: {
+          'Authorization': `Bearer ${this.config.authToken}`,
+          'Content-Type': 'application/json'
+        }
+      },
       // Optimize reconnection settings for production
       reconnectionOptions: {
         maxReconnectionDelay: 5000, // Max 5 seconds between retries
@@ -154,7 +151,6 @@ class MCPClient {
         reconnectionDelayGrowFactor: 1.5,
         maxRetries: 3
       }
-      // DO NOT add requestInit with keepalive or Connection headers - breaks on Vercel
     });
 
     // Set connection timeout
