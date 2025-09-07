@@ -20,9 +20,8 @@ export function createOrchestrator(overrides?: Partial<OrchestratorDeps>): Workf
     if (!globalMCPClient) {
       console.log('[MCP] Creating new global MCP client instance (cold start)');
       globalMCPClient = MCPClient.getInstance({
-        serverUrl: process.env.MCP_SERVER_URL || "https://mcp.smithery.ai",
-        apiKey: process.env.MCP_API_KEY || "",
-        profile: process.env.MCP_PROFILE || "default",
+        serverUrl: process.env.MCP_SERVER_URL || "https://n8ngrowthagents.ghostteam.ai/mcp/",
+        authToken: process.env.MCP_AUTH_TOKEN || "28d8026f-fad7-4bc6-87c5-9fcacba57fde",
       });
     } else {
       console.log('[MCP] Reusing existing MCP client (warm start)');
