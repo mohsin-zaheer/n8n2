@@ -60,10 +60,11 @@ export async function GET() {
     if (isMCPConfigured()) {
       const mcpStart = Date.now();
       try {
-        const { MCP_SERVER_URL, MCP_AUTH_TOKEN } = getEnv();
+        const { MCP_SERVER_URL, MCP_API_KEY, MCP_PROFILE } = getEnv();
         const client = MCPClient.getInstance({
           serverUrl: MCP_SERVER_URL,
-          authToken: MCP_AUTH_TOKEN,
+          apiKey: MCP_API_KEY,
+          profile: MCP_PROFILE,
           connectionTimeout: 5000,
           maxRetries: 1,
           retryDelay: 500,

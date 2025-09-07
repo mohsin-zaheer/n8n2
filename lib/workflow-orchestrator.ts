@@ -180,8 +180,9 @@ export class WorkflowOrchestrator {
     this.mcpClient =
       deps?.mcpClient ||
       MCPClient.getInstance({
-        serverUrl: process.env.MCP_SERVER_URL || "https://n8ngrowthagents.ghostteam.ai/mcp/",
-        authToken: process.env.MCP_AUTH_TOKEN || "28d8026f-fad7-4bc6-87c5-9fcacba57fde",
+        serverUrl: process.env.MCP_SERVER_URL || "https://mcp.smithery.ai",
+        apiKey: process.env.MCP_API_KEY || "",
+        profile: process.env.MCP_PROFILE || "default",
       });
 
     // Create phase services with shared client AND mcpClient for tool support

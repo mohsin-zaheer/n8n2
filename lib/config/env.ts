@@ -17,8 +17,11 @@ const envSchema = z.object({
   MCP_SERVER_URL: z.string().url({
     message: "MCP_SERVER_URL must be a valid URL"
   }),
-  MCP_AUTH_TOKEN: z.string().min(1, {
-    message: "MCP_AUTH_TOKEN is required"
+  MCP_API_KEY: z.string().min(1, {
+    message: "MCP_API_KEY is required"
+  }),
+  MCP_PROFILE: z.string().min(1, {
+    message: "MCP_PROFILE is required"
   }),
   CRON_SECRET: z.string().min(32, {
     message: "CRON_SECRET must be at least 32 characters for security"
@@ -55,8 +58,9 @@ export function getEnv(): Env {
         NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co',
         NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key',
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || 'sk-test',
-        MCP_SERVER_URL: process.env.MCP_SERVER_URL || 'https://n8ngrowthagents.ghostteam.ai/mcp/',
-        MCP_AUTH_TOKEN: process.env.MCP_AUTH_TOKEN || '28d8026f-fad7-4bc6-87c5-9fcacba57fde',
+        MCP_SERVER_URL: process.env.MCP_SERVER_URL || 'https://mcp.smithery.ai',
+        MCP_API_KEY: process.env.MCP_API_KEY || 'test-key',
+        MCP_PROFILE: process.env.MCP_PROFILE || 'test',
         CRON_SECRET: process.env.CRON_SECRET || 'test-secret',
         SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY || 'test-service-key',
         NODE_ENV: process.env.NODE_ENV as 'development' | 'production' | 'test'
