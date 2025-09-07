@@ -136,7 +136,7 @@ class MCPClient {
     });
 
     // Configure HTTP transport with Authorization header
-    this.transport = new StreamableHTTPClientTransport(this.config.serverUrl, {
+    this.transport = new StreamableHTTPClientTransport(new URL(this.config.serverUrl), {
       // Add Authorization header for custom MCP server
       requestInit: {
         headers: {
