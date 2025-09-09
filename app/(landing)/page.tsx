@@ -277,7 +277,7 @@ export default function Home() {
                 </div>
               </div>
               <h1 className="mt-6 text-4xl sm:text-5xl font-semibold tracking-tight text-neutral-900 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                Prompt your custom growth agent
+                Prompt to your custom growth agent
               </h1>
               
               {/* Subtitle */}
